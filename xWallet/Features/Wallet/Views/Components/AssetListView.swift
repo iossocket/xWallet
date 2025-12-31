@@ -21,7 +21,7 @@ struct AssetListView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            // 列表标题
+            // List title
             HStack(alignment: .lastTextBaseline) {
                 Text("Assets")
                     .font(.title3)
@@ -46,13 +46,13 @@ struct AssetListView: View {
             }
             .padding(.horizontal)
             
-            // 列表项
+            // List items
             VStack(spacing: 12) {
                 ForEach(assets) { asset in
                     AssetRow(asset: asset, showBalance: showBalance)
                 }
                 
-                // More 按钮
+                // More button
                 HStack {
                     Spacer()
                     Image(systemName: "ellipsis")
@@ -63,13 +63,13 @@ struct AssetListView: View {
             }
         }
         .padding(.top, 20)
-        // 列表背景：上淡下深
+        // List background: light at top, dark at bottom
         .background(
             LinearGradient(colors: [Color.white.opacity(0.02), Color.black], startPoint: .top, endPoint: .bottom)
         )
-        // 顶部圆角
+        // Top rounded corners
         .clipShape(RoundedCorner(radius: 32, corners: [.topLeft, .topRight]))
-        // 顶部光泽边框
+        // Top glossy border
         .overlay(
             RoundedCorner(radius: 32, corners: [.topLeft, .topRight])
                 .stroke(LinearGradient(colors: [.white.opacity(0.1), .clear], startPoint: .top, endPoint: .bottom), lineWidth: 1)

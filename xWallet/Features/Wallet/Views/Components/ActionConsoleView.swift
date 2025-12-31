@@ -19,7 +19,7 @@ struct ActionConsoleView: View {
             ActionButton(icon: "plus", label: "Buy")
         }
         .padding(12)
-        .background(.ultraThinMaterial) // 关键：磨砂玻璃背景
+        .background(.ultraThinMaterial) // Key: Frosted glass background
         .clipShape(RoundedRectangle(cornerRadius: 28))
         .overlay(
             RoundedRectangle(cornerRadius: 28)

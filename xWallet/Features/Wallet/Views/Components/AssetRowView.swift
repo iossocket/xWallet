@@ -13,7 +13,7 @@ struct AssetRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // 图标
+            // Icon
             ZStack {
                 Circle()
                     .fill(asset.color.opacity(0.2))
@@ -24,7 +24,7 @@ struct AssetRow: View {
                     .foregroundStyle(asset.color.opacity(0.9))
             }
             
-            // 名称
+            // Name
             VStack(alignment: .leading, spacing: 4) {
                 Text(asset.symbol)
                     .font(.system(size: 16, weight: .bold))
@@ -36,7 +36,7 @@ struct AssetRow: View {
             
             Spacer()
             
-            // 价值
+            // Value
             VStack(alignment: .trailing, spacing: 4) {
                 Text(showBalance ? "$\(asset.value)" : "****")
                     .font(.system(size: 16, weight: .bold))

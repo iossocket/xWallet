@@ -12,7 +12,7 @@ struct HeaderView: View {
     
     var body: some View {
         HStack {
-            // 左侧用户信息
+            // Left side user info
             HStack(spacing: 12) {
                 ZStack {
                     Circle()
@@ -38,7 +38,7 @@ struct HeaderView: View {
                         Text(showBalance ? "$\(totalBalance)" : "****")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
-                            .contentTransition(.numericText()) // 数字滚动动画
+                            .contentTransition(.numericText()) // Number scroll animation
                         
                         Image(systemName: showBalance ? "chevron.down" : "eye.slash.fill")
                             .font(.system(size: 12))
@@ -54,13 +54,13 @@ struct HeaderView: View {
             
             Spacer()
             
-            // 右侧设置按钮
+            // Right side settings button
             Button(action: {}) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 18))
                     .foregroundStyle(.gray)
                     .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial) // 磨砂玻璃
+                    .background(.ultraThinMaterial) // Frosted glass
                     .clipShape(Circle())
                     .overlay(
                         Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)

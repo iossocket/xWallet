@@ -11,12 +11,12 @@ struct DashboardRingView: View {
     
     var body: some View {
         ZStack {
-            // 背景圆环
+            // Background ring
             Circle()
                 .stroke(Color.white.opacity(0.05), lineWidth: 24)
                 .frame(width: 280, height: 280)
             
-            // 进度圆环 (渐变色)
+            // Progress ring (gradient)
             Circle()
                 .trim(from: 0, to: 0.75)
                 .stroke(
@@ -28,15 +28,15 @@ struct DashboardRingView: View {
                 )
                 .frame(width: 280, height: 280)
                 .rotationEffect(.degrees(-90))
-                .shadow(color: .blue.opacity(0.4), radius: 20, x: 0, y: 0) // 辉光效果
+                .shadow(color: .blue.opacity(0.4), radius: 20, x: 0, y: 0) // Glow effect
             
-            // 内部装饰光
+            // Inner decorative light
             Circle()
                 .fill(Color.blue.opacity(0.05))
                 .frame(width: 200, height: 200)
                 .blur(radius: 30)
             
-            // 中心内容
+            // Center content
             VStack(spacing: 12) {
                 Text("Main Portfolio")
                     .font(.system(size: 10, weight: .medium, design: .monospaced))
@@ -44,7 +44,7 @@ struct DashboardRingView: View {
                     .foregroundStyle(.gray)
                     .textCase(.uppercase)
                 
-                // 钱包图标
+                // Wallet icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 20)
                         .fill(
@@ -81,6 +81,6 @@ struct DashboardRingView: View {
                 }
             }
         }
-        .padding(.bottom, 40) // 给下方控制台留点空间
+        .padding(.bottom, 40) // Reserve space for console below
     }
 }
