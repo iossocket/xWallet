@@ -12,5 +12,5 @@ public protocol Reducer {
     associatedtype Action
     
     @MainActor
-    func reduce(into state: inout State, action: Action) -> Task<Void, Never>?
+    func reduce(into state: inout State, action: Action, send: @escaping (Action) -> Void) -> Task<Void, Never>?
 }

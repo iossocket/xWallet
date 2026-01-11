@@ -3,7 +3,6 @@ import SwiftUI
 // MARK: - Main View
 struct ContentView: View {
     @StateObject private var appStore = Store(initialState: AppState(), reducer: AppReducer())
-    
     private var tabBinding: Binding<Tab> {
         Binding(
             get: { appStore.state.selectedTab },

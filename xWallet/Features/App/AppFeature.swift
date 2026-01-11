@@ -22,15 +22,19 @@ enum AppAction: Equatable {
 }
 
 struct AppReducer: Reducer {
+    typealias State = AppState
+    typealias Action = AppAction
+    
     @MainActor
-    func reduce(into state: inout AppState, action: AppAction) -> Task<Void, Never>? {
+    func reduce(into state: inout AppState, action: AppAction, send: @escaping (Action) -> Void) -> Task<Void, Never>? {
         switch action {
         case .tabSelected(let tab):
             state.selectedTab = tab
             return nil
-
         case .wallet(let walletAction):
-            return WalletReducer().reduce(into: &state.wallet, action: walletAction)
+            return WalletReducer().reduce(into: &state.wallet, action: walletAction, send: {
+                send(.wallet($0))
+            })
         }
     }
 }

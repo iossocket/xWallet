@@ -22,6 +22,8 @@ final class Store<R: Reducer>: ObservableObject {
     }
     
     func send(_ action: Action) {
-        _ = reducer.reduce(into: &state, action: action)
+        _ = reducer.reduce(into: &state, action: action, send: { newAction in
+            self.send(newAction)
+        })
     }
 }

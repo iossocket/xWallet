@@ -8,9 +8,16 @@
 import Foundation
 
 struct DependencyValues {
-    
+    var ethereum: EthereumService
 }
 
 enum Dependencies {
-    static var current = DependencyValues()
+    static var current = DependencyValues(
+        ethereum: EthereumService(rpc: EthereumRPC(rpcURL: "..."))
+    )
+
+    static func setRPCURL(_ url: String) {
+        current.ethereum = EthereumService(rpc: EthereumRPC(rpcURL: url))
+    }
 }
+
