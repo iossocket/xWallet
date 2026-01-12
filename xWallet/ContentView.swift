@@ -26,9 +26,12 @@ struct ContentView: View {
                 .tabItem { Label("Discover", systemImage: "safari.fill") }
                 .tag(Tab.discover)
 
-            Text("Profile")
-                .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
-                .tag(Tab.profile)
+            SettingsView(
+                state: appStore.state.settings,
+                send: { appStore.send(.settings($0)) }
+            )
+            .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+            .tag(Tab.profile)
         }
     }
 }

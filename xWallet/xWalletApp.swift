@@ -10,7 +10,10 @@ import SwiftUI
 @main
 struct xWalletApp: App {
     init() {
-        WalletCoreValidator.runQuickCheck()
+        let url = UserDefaults.standard.string(forKey: "rpc_url")
+                    ?? "https://rpc.sepolia.org"
+        Dependencies.setRPCURL(url)
+//        WalletCoreValidator.runQuickCheck()
     }
     var body: some Scene {
         WindowGroup {

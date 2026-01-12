@@ -13,12 +13,14 @@ enum Tab: String, Equatable {
 
 struct AppState: Equatable {
     var selectedTab: Tab = .wallet
-    var wallet: WalletState = .init() // ?
+    var wallet: WalletState = .init()
+    var settings: SettingsState = .init()
 }
 
 enum AppAction: Equatable {
     case tabSelected(Tab)
     case wallet(WalletAction)
+    case settings(SettingsAction)
 }
 
 struct AppReducer: Reducer {
@@ -35,6 +37,16 @@ struct AppReducer: Reducer {
             return WalletReducer().reduce(into: &state.wallet, action: walletAction, send: {
                 send(.wallet($0))
             })
+        case .settings(let settingsAction):
+            let task = SettingsReducer().reduce( into: &state.settings, action: settingsAction, send: { send(.settings($0)) } )
+            if case .saveTapped(let url) = settingsAction, case .connected = state.settings.connectionStatus {
+                let url = url.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard state.settings.isValid else { return task }
+                
+                Dependencies.setRPCURL(url)
+                send(.wallet(.refreshTapped))
+            }
+            return task
         }
     }
 }
