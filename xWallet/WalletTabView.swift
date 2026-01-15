@@ -8,28 +8,26 @@
 import SwiftUI
 
 struct WalletTabView: View {
-    let state: WalletState
-    let send: (WalletAction) -> Void
+    @ObservedObject var store: ScopedStore<AppReducer, WalletState, WalletAction>
     
-    private var showBallanceBinding: Binding<Bool> {
-        Binding(
-            get: { state.showBalance },
-            set: { _ in send(.toggleShowBalance) }
+    private var showBalanceBinding: Binding<Bool> {
+        store.binding(
+            get: { $0.showBalance },
+            send: { _ in .toggleShowBalance } // 或者你也可以做一个 setShowBalance(bool)
         )
     }
     
     private var receiveSheetBinding: Binding<Bool> {
-        Binding(
-            get: { state.isReceiveSheetPresented },
-            set: { newValue in
-                if newValue == false {
-                    send(.receiveSheetDismissed)
-                }
+        store.binding(
+            get: { $0.isReceiveSheetPresented },
+            send: { isPresented in
+                isPresented ? .receiveTapped : .receiveSheetDismissed
             }
         )
     }
     
     var body: some View {
+        let state = store.state
         ZStack(alignment: .bottom) {
             // 1. Global aurora background (Layer 0)
             AuroraBackground()
@@ -38,7 +36,7 @@ struct WalletTabView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Header
-                    HeaderView(showBalance: showBallanceBinding, totalBalance: state.totalBalance)
+                    HeaderView(showBalance: showBalanceBinding, totalBalance: state.totalBalance)
                         .padding(.top, 60) // Adapt to notch area at top
                         .padding(.horizontal)
                     
@@ -49,7 +47,7 @@ struct WalletTabView: View {
                     
                     // Floating action console
                     // Use negative offset to achieve "overlapping" effect
-                    ActionConsoleView(showReceiveSheet: showBallanceBinding)
+                    ActionConsoleView(showReceiveSheet: receiveSheetBinding)
                         .offset(y: -40)
                         .padding(.bottom, -20)
                         .zIndex(2)
@@ -72,7 +70,7 @@ struct WalletTabView: View {
                 .presentationCornerRadius(32)
         }
         .onAppear {
-            send(.refreshTapped)
+            store.send(.refreshTapped)
         }
     }
 }

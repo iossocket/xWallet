@@ -9,15 +9,15 @@ import SwiftUI
 
 @main
 struct xWalletApp: App {
+    @StateObject private var appStore = Store(initialState: AppState(), reducer: AppReducer())
+    
     init() {
-        let url = UserDefaults.standard.string(forKey: "rpc_url")
-                    ?? "https://rpc.sepolia.org"
-        Dependencies.setRPCURL(url)
+        Dependencies.bootstrap()
 //        WalletCoreValidator.runQuickCheck()
     }
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(appStore: appStore)
         }
     }
 }

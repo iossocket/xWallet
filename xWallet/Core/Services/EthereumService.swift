@@ -25,8 +25,12 @@ enum Hex {
     }
 }
 
+protocol EthereumServiceProtocol {
+    var rpc: EthereumRPC { get }
+}
 
-struct EthereumService {
+
+struct EthereumService: EthereumServiceProtocol {
     let rpc: EthereumRPC
     
     init(rpc: EthereumRPC) {

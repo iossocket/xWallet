@@ -19,5 +19,10 @@ enum Dependencies {
     static func setRPCURL(_ url: String) {
         current.ethereum = EthereumService(rpc: EthereumRPC(rpcURL: url))
     }
+    
+    static func bootstrap() {
+        let url = UserDefaults.standard.string(forKey: "rpc_url") ?? "https://rpc.sepolia.org"
+        Dependencies.setRPCURL(url)
+    }
 }
 

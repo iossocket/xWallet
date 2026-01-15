@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    let state: SettingsState
-    let send: (SettingsAction) -> Void
+    @ObservedObject var store: ScopedStore<AppReducer, SettingsState, SettingsAction>
 
     var body: some View {
         ZStack {
@@ -40,7 +39,7 @@ struct SettingsView: View {
         .background(Color(hex: "050505"))
         .preferredColorScheme(.dark)
         .onAppear {
-            send(.onAppear)
+            store.send(.onAppear)
         }
     }
 
@@ -65,9 +64,9 @@ struct SettingsView: View {
 
             TextField(
                 "https://rpc.sepolia.org",
-                text: Binding(
-                    get: { state.rpcURL },
-                    set: { send(.rpcURLChanged($0)) }
+                text: store.binding(
+                    get: { $0.rpcURL },
+                    send: { .rpcURLChanged($0) }
                 )
             )
             .textInputAutocapitalization(.never)
@@ -78,20 +77,20 @@ struct SettingsView: View {
             .clipShape(RoundedRectangle(cornerRadius: 16))
             .overlay(
                 RoundedRectangle(cornerRadius: 16)
-                    .stroke(state.isValid ? Color.white.opacity(0.10) : Color.red.opacity(0.7), lineWidth: 1)
+                    .stroke(store.state.isValid ? Color.white.opacity(0.10) : Color.red.opacity(0.7), lineWidth: 1)
             )
 
             HStack(spacing: 8) {
-                Image(systemName: state.isValid ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
-                    .foregroundStyle(state.isValid ? .green : .red)
+                Image(systemName: store.state.isValid ? "checkmark.seal.fill" : "exclamationmark.triangle.fill")
+                    .foregroundStyle(store.state.isValid ? .green : .red)
 
-                Text(state.isValid ? "Looks good" : "Please enter a valid http(s) URL")
+                Text(store.state.isValid ? "Looks good" : "Please enter a valid http(s) URL")
                     .font(.footnote)
-                    .foregroundStyle(state.isValid ? .gray : .red)
+                    .foregroundStyle(store.state.isValid ? .gray : .red)
             }
             
             Button {
-                send(.checkTapped)
+                store.send(.checkTapped)
             } label: {
                 HStack {
                     Spacer()
@@ -101,7 +100,7 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 12)
             }
-            .disabled(!state.isValid || state.isChecking)
+            .disabled(!store.state.isValid || store.state.isChecking)
             .foregroundStyle(.white)
             .background(Color.white.opacity(0.08))
             .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -112,19 +111,19 @@ struct SettingsView: View {
 
     private var statusRow: some View {
         HStack(spacing: 8) {
-            if state.isChecking {
+            if store.state.isChecking {
                 ProgressView().scaleEffect(0.9)
                 Text("Checking...")
                     .font(.footnote)
                     .foregroundStyle(.gray)
             } else {
-                switch state.connectionStatus {
+                switch store.state.connectionStatus {
                 case .idle:
                     Text("Not verified")
                         .font(.footnote)
                         .foregroundStyle(.gray)
                 case .connected:
-                    let name = chainName(state.chainId)
+                    let name = chainName(store.state.chainId)
                     Text("Connected • \(name)")
                         .font(.footnote)
                         .foregroundStyle(.green)
@@ -157,7 +156,7 @@ struct SettingsView: View {
     private var saveSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Button {
-                send(.saveTapped(state.rpcURL))
+                store.send(.saveTapped(store.state.rpcURL))
             } label: {
                 HStack {
                     Spacer()
@@ -167,9 +166,9 @@ struct SettingsView: View {
                 }
                 .padding(.vertical, 14)
             }
-            .disabled(!(state.isValid && state.connectionStatus == .connected))
+            .disabled(!(store.state.isValid && store.state.connectionStatus == .connected))
             .foregroundStyle(.white)
-            .background(state.isValid ? Color.blue : Color.gray.opacity(0.4))
+            .background(store.state.isValid ? Color.blue : Color.gray.opacity(0.4))
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Text("Saved value is stored locally (UserDefaults).")
@@ -181,7 +180,7 @@ struct SettingsView: View {
 
     private func presetButton(title: String, url: String) -> some View {
         Button {
-            send(.rpcURLChanged(url))
+            store.send(.rpcURLChanged(url))
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {

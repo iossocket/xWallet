@@ -12,6 +12,8 @@ import Combine
 final class Store<R: Reducer>: ObservableObject {
     typealias Action = R.Action
     typealias State = R.State
+    private var runningTasks: [AnyHashable: Task<Void, Never>] = [:]
+    
     @Published private(set) var state: State
     
     private let reducer: R
@@ -21,9 +23,12 @@ final class Store<R: Reducer>: ObservableObject {
         self.reducer = reducer
     }
     
-    func send(_ action: Action) {
-        _ = reducer.reduce(into: &state, action: action, send: { newAction in
+    func send(_ action: Action, cancelId: AnyHashable? = nil) {
+        if let cancelId { runningTasks[cancelId]?.cancel() }
+        if let task = reducer.reduce(into: &state, action: action, send: { newAction in
             self.send(newAction)
-        })
+        }) {
+            if let cancelId { runningTasks[cancelId] = task }
+        }
     }
 }

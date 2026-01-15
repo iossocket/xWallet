@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 struct WalletState: Equatable {
-    var address: String = ""
+    var address: String? = nil
     var ethBalance: Decimal? = nil
     var assets: [AssetItem] = []
     var totalBalance: String = "1,161,2.0"
@@ -45,6 +45,8 @@ struct WalletReducer: Reducer {
     typealias State = WalletState
     typealias Action = WalletAction
     
+    let ethereum: EthereumServiceProtocol
+    
     @MainActor
     func reduce(into state: inout WalletState, action: WalletAction, send: @escaping (Action) -> Void) -> Task<Void, Never>? {
         switch action {
@@ -54,7 +56,7 @@ struct WalletReducer: Reducer {
             state.assets = AssetItem.preset
             
             let address = state.address
-            let ethereum = Dependencies.current.ethereum
+            guard let address else { return nil }
             return Task { @MainActor in
                 do {
                     let eth = try await ethereum.rpc.getBalanceETH(address: address)
