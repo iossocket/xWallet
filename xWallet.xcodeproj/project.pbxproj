@@ -9,6 +9,11 @@
 /* Begin PBXBuildFile section */
 		5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB372ED323C9005AF084 /* WalletCore */; };
 		5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */; };
+		5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */; };
+		5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E32F41D4AD00B70BC6 /* MultiChainCore */; };
+		5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */; };
+		5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */; };
+		5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -29,7 +34,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */,
+				5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */,
+				5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */,
+				5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */,
+				5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */,
 				5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */,
+				5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -74,6 +84,11 @@
 			packageProductDependencies = (
 				5A54CB372ED323C9005AF084 /* WalletCore */,
 				5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */,
+				5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */,
+				5AB3E5E32F41D4AD00B70BC6 /* MultiChainCore */,
+				5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */,
+				5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */,
+				5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */,
 			);
 			productName = xWallet;
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
@@ -105,6 +120,8 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */,
+				5AB3E5E02F41D4AD00B70BC6 /* XCLocalSwiftPackageReference "../../../../../../../Volumes/PSSD/projects/MultiChainKit" */,
+				5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A54CB262ED3219E005AF084 /* Products */;
@@ -339,6 +356,13 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		5AB3E5E02F41D4AD00B70BC6 /* XCLocalSwiftPackageReference "../../../../../../../Volumes/PSSD/projects/MultiChainKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../../../../../../../Volumes/PSSD/projects/MultiChainKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCRemoteSwiftPackageReference section */
 		5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -346,6 +370,14 @@
 			requirement = {
 				kind = exactVersion;
 				version = 4.4.2;
+			};
+		};
+		5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-composable-architecture";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.23.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -360,6 +392,27 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */;
 			productName = WalletCoreSwiftProtobuf;
+		};
+		5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = EthereumKit;
+		};
+		5AB3E5E32F41D4AD00B70BC6 /* MultiChainCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MultiChainCore;
+		};
+		5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MultiChainKit;
+		};
+		5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StarknetKit;
+		};
+		5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
+			productName = ComposableArchitecture;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
