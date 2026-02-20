@@ -6,18 +6,19 @@
 //
 
 import Foundation
+import EthereumKit
 
-struct DependencyValues {
-    var ethereum: EthereumService
+struct MyDependencyValues {
+    var ethereumService: EthereumService
 }
 
 enum Dependencies {
-    static var current = DependencyValues(
-        ethereum: EthereumService(rpc: EthereumRPC(rpcURL: "..."))
+    static var current = MyDependencyValues(
+        ethereumService: EthereumService(provider: EthereumProvider(chain: Ethereum(chainId: 31337, name: "anvil", rpcURL: URL(string: "http://127.0.0.1:8545")!, isTestnet: true)))
     )
 
     static func setRPCURL(_ url: String) {
-        current.ethereum = EthereumService(rpc: EthereumRPC(rpcURL: url))
+        current.ethereumService = EthereumService(provider: EthereumProvider(chain: Ethereum(chainId: 31337, name: "anvil", rpcURL: URL(string: url)!, isTestnet: true)))
     }
     
     static func bootstrap() {

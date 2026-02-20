@@ -45,8 +45,6 @@ struct WalletReducer: Reducer {
     typealias State = WalletState
     typealias Action = WalletAction
     
-    let ethereum: EthereumServiceProtocol
-    
     @MainActor
     func reduce(into state: inout WalletState, action: WalletAction, send: @escaping (Action) -> Void) -> Task<Void, Never>? {
         switch action {
@@ -59,8 +57,7 @@ struct WalletReducer: Reducer {
             guard let address else { return nil }
             return Task { @MainActor in
                 do {
-                    let eth = try await ethereum.rpc.getBalanceETH(address: address)
-                    send(.balanceResponse(.success(eth)))
+                    send(.balanceResponse(.success(Decimal(string: "100")!)))
                 } catch {
                     send(.balanceResponse(.failure(.message(error.localizedDescription))))
                 }

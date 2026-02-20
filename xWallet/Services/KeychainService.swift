@@ -7,6 +7,7 @@
 
 import Foundation
 import Security
+import Dependencies
 
 enum KeychainError: Error, LocalizedError, Equatable {
     case unexpectedStatus(OSStatus)
@@ -74,6 +75,19 @@ final class KeychainService {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw KeychainError.unexpectedStatus(status)
         }
+    }
+}
+
+extension KeychainService: DependencyKey {
+    static var liveValue: KeychainService {
+        return KeychainService()
+    }
+}
+
+extension DependencyValues {
+    var keychain: KeychainService {
+        get { self[KeychainService.self] }
+        set { self[KeychainService.self] = newValue }
     }
 }
 

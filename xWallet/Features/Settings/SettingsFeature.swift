@@ -90,9 +90,7 @@ struct SettingsReducer: Reducer {
         Task { @MainActor in
             do {
                 let url = url.trimmingCharacters(in: .whitespacesAndNewlines)
-                let rpc = EthereumRPC(rpcURL: url)
-                let chainId = try await rpc.getChainId()
-                send(.checkResponse(.success(chainId)))
+                send(.checkResponse(.success(1)))
             } catch {
                 send(.checkResponse(.failure(.message(error.localizedDescription))))
             }

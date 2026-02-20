@@ -37,7 +37,7 @@ struct AppReducer: Reducer {
     typealias State = AppState
     typealias Action = AppAction
     
-    let walletReducer = WalletReducer(ethereum: Dependencies.current.ethereum)
+    let walletReducer = WalletReducer()
     let settingsReducer = SettingsReducer()
     let accountReducer = AccountReducer()
     
