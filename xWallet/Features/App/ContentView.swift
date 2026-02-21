@@ -2,19 +2,15 @@ import SwiftUI
 
 typealias AppStore = Store<AppReducer>
 typealias WalletStore = ScopedStore<AppReducer, WalletState, WalletAction>
-typealias SettingsStore = ScopedStore<AppReducer, SettingsState, SettingsAction>
 
 // MARK: - Main View
 struct ContentView: View {
     @ObservedObject var appStore: Store<AppReducer>
-    
     @StateObject private var walletStore: WalletStore
-    @StateObject private var settingsStore: SettingsStore
     
     init(appStore: Store<AppReducer>) {
         self.appStore = appStore
         _walletStore = StateObject(wrappedValue: appStore.scope(state: \.wallet, action: AppAction.wallet))
-        _settingsStore = StateObject(wrappedValue: appStore.scope(state: \.settings, action: AppAction.settings))
     }
     
     
@@ -35,9 +31,9 @@ struct ContentView: View {
                 .tabItem { Label("Discover", systemImage: "safari.fill") }
                 .tag(Tab.discover)
 
-            SettingsView(store: settingsStore)
-                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
-                .tag(Tab.profile)
+//            SettingsView(store: settingsStore)
+//                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+//                .tag(Tab.profile)
         }
     }
 }

@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 struct SettingsView: View {
-    @ObservedObject var store: ScopedStore<AppReducer, SettingsState, SettingsAction>
+    @Bindable var store: StoreOf<Settings>
 
     var body: some View {
         ZStack {
@@ -64,10 +65,7 @@ struct SettingsView: View {
 
             TextField(
                 "https://rpc.sepolia.org",
-                text: store.binding(
-                    get: { $0.rpcURL },
-                    send: { .rpcURLChanged($0) }
-                )
+                text: $store.rpcURL.sending(\.rpcURLChanged)
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled(true)
@@ -90,7 +88,7 @@ struct SettingsView: View {
             }
             
             Button {
-                store.send(.checkTapped)
+                store.send(.checkButtonTapped)
             } label: {
                 HStack {
                     Spacer()
@@ -156,7 +154,7 @@ struct SettingsView: View {
     private var saveSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Button {
-                store.send(.saveTapped(store.state.rpcURL))
+                store.send(.saveButtonTapped(store.rpcURL))
             } label: {
                 HStack {
                     Spacer()
