@@ -6,28 +6,20 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 struct WalletTabView: View {
-    @ObservedObject var store: ScopedStore<AppReducer, WalletState, WalletAction>
+    @Bindable var store: StoreOf<Wallet>
     
     private var showBalanceBinding: Binding<Bool> {
-        store.binding(
-            get: { $0.showBalance },
-            send: { _ in .toggleShowBalance } // 或者你也可以做一个 setShowBalance(bool)
-        )
+        $store.showBalance.sending(\.toggleShowBalanceButtonTapped)
     }
     
     private var receiveSheetBinding: Binding<Bool> {
-        store.binding(
-            get: { $0.isReceiveSheetPresented },
-            send: { isPresented in
-                isPresented ? .receiveTapped : .receiveSheetDismissed
-            }
-        )
+        $store.isReceiveSheetPresented.sending(\.setReceiveSheetPresented)
     }
     
     var body: some View {
-        let state = store.state
         ZStack(alignment: .bottom) {
             // 1. Global aurora background (Layer 0)
             AuroraBackground()
@@ -36,12 +28,12 @@ struct WalletTabView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Header
-                    HeaderView(showBalance: showBalanceBinding, totalBalance: state.totalBalance)
+                    HeaderView(showBalance: showBalanceBinding, totalBalance: store.totalBalance)
                         .padding(.top, 60) // Adapt to notch area at top
                         .padding(.horizontal)
                     
                     // Dashboard ring (Dashboard Core)
-                    DashboardRingView(showBalance: state.showBalance)
+                    DashboardRingView(showBalance: store.showBalance)
                         .padding(.top, 20)
                         .zIndex(1) // Ensure layer is above elements below
                     
@@ -53,7 +45,7 @@ struct WalletTabView: View {
                         .zIndex(2)
                     
                     // Asset list (Asset Drawer)
-                    AssetListView(showBalance: state.showBalance, assets: state.assets)
+                    AssetListView(showBalance: store.showBalance, assets: store.assets)
                         .padding(.bottom, 100) // Reserve space for bottom navigation bar
                 }
             }
@@ -70,7 +62,7 @@ struct WalletTabView: View {
                 .presentationCornerRadius(32)
         }
         .onAppear {
-            store.send(.refreshTapped)
+            store.send(.refreshButtonTapped)
         }
     }
 }

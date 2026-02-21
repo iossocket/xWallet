@@ -1,0 +1,84 @@
+//
+//  Wallet.swift
+//  xWallet
+//
+//  Created by Xueliang Zhu on 21/2/26.
+//
+
+import Foundation
+import ComposableArchitecture
+import EthereumKit
+import BigInt
+
+@Reducer
+struct Wallet {
+    @ObservableState
+    struct State: Equatable {
+        var address: String?
+        var assets: [AssetItem] = []
+        var errorMessage: String?
+        var ethBalance: String?
+        var isLoading = false
+        var isReceiveSheetPresented = false
+        var showBalance = true
+        var totalBalance = "1,161,2.0"
+    }
+    
+    enum Action {
+        case balanceResponse(Result<BigUInt, Error>)
+        case refreshButtonTapped
+        case setReceiveSheetPresented(Bool)
+        case toggleShowBalanceButtonTapped(Bool)
+    }
+    
+    @Dependency(\.ethereum) var ethereum
+    
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case .refreshButtonTapped:
+                state.isLoading = true
+                state.errorMessage = nil
+                state.assets = AssetItem.preset
+                guard let address = state.address else { return .none }
+                return .run { [provider = ethereum.provider] send in
+                    do {
+                        guard let evmAddr = EthereumAddress(address) else {
+                            return
+                        }
+                        let request = provider.getBalanceRequest(address: evmAddr, block: BlockTag.latest)
+                        let result: String = try await provider.send(request: request)
+                        let cleaned = result.lowercased().hasPrefix("0x")
+                                ? String(result.dropFirst(2))
+                                : result
+                        guard let balance = BigUInt(cleaned, radix: 16) else {
+                            await send(.balanceResponse(.failure(EthereumServiceError.invalidNumber)))
+                            return
+                        }
+                        await send(.balanceResponse(.success(balance)))
+                    } catch {
+                        await send(.balanceResponse(.failure(error)))
+                    }
+                }
+
+            case .balanceResponse(.success(let balance)):
+                state.isLoading = false
+                state.ethBalance = balance.description
+                return .none
+
+            case .balanceResponse(.failure(let error)):
+                state.isLoading = false
+                state.errorMessage = error.localizedDescription
+                return .none
+
+            case .toggleShowBalanceButtonTapped(let isShowBalance):
+                state.showBalance = isShowBalance
+                return .none
+
+            case .setReceiveSheetPresented(let isPresented):
+                state.isReceiveSheetPresented = isPresented
+                return .none
+            }
+        }
+    }
+}

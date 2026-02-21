@@ -1,16 +1,13 @@
 import SwiftUI
 
 typealias AppStore = Store<AppReducer>
-typealias WalletStore = ScopedStore<AppReducer, WalletState, WalletAction>
 
 // MARK: - Main View
 struct ContentView: View {
     @ObservedObject var appStore: Store<AppReducer>
-    @StateObject private var walletStore: WalletStore
     
     init(appStore: Store<AppReducer>) {
         self.appStore = appStore
-        _walletStore = StateObject(wrappedValue: appStore.scope(state: \.wallet, action: AppAction.wallet))
     }
     
     
@@ -19,9 +16,9 @@ struct ContentView: View {
             get: { appStore.state.selectedTab },
             set: { appStore.send(.tabSelected($0)) }
         )) {
-            WalletTabView(store: walletStore)
-                .tabItem { Label("Wallet", systemImage: "wallet.pass.fill") }
-                .tag(Tab.wallet)
+//            WalletTabView(store: walletStore)
+//                .tabItem { Label("Wallet", systemImage: "wallet.pass.fill") }
+//                .tag(Tab.wallet)
 
             Text("Market")
                 .tabItem { Label("Market", systemImage: "chart.bar.fill") }

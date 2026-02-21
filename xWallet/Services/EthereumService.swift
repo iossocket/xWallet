@@ -11,11 +11,12 @@ import MultiChainCore
 import EthereumKit
 
 struct EthereumService {
-    let provider: any Provider
+    let provider: EthereumProvider
 }
 
 enum EthereumServiceError: Error {
     case invalidURL(String)
+    case invalidNumber
 }
 
 extension EthereumService: DependencyKey {
