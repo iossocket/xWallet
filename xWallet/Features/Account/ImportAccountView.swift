@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 struct ImportAccountView: View {
-    @ObservedObject var store: ScopedStore<AppReducer, AccountState, AccountAction>
+    let store: StoreOf<Account>
     @State private var privateKeyHex: String = ""
 
     var body: some View {
@@ -30,7 +31,7 @@ struct ImportAccountView: View {
 
             Button {
                 let input = privateKeyHex
-                store.send(.importPrivateKeyTapped(input))
+                store.send(.importButtonTapped(input))
             } label: {
                 HStack { Spacer(); Text("Import"); Spacer() }
                     .padding(.vertical, 12)
@@ -66,4 +67,3 @@ struct ImportAccountView: View {
         }
     }
 }
-

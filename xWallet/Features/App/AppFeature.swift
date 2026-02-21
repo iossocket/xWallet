@@ -22,7 +22,6 @@ struct AppState: Equatable {
     var selectedTab: Tab = .wallet
     var wallet: WalletState = .init()
     var settings: SettingsState = .init()
-    var account: AccountState = .init()
 }
 
 enum AppAction: Equatable {
@@ -30,7 +29,6 @@ enum AppAction: Equatable {
     case tabSelected(Tab)
     case wallet(WalletAction)
     case settings(SettingsAction)
-    case account(AccountAction)
 }
 
 struct AppReducer: Reducer {
@@ -39,7 +37,6 @@ struct AppReducer: Reducer {
     
     let walletReducer = WalletReducer()
     let settingsReducer = SettingsReducer()
-    let accountReducer = AccountReducer()
     
     @MainActor
     func reduce(into state: inout AppState, action: AppAction, send: @escaping (Action) -> Void) -> Task<Void, Never>? {
@@ -63,21 +60,6 @@ struct AppReducer: Reducer {
                 Dependencies.setRPCURL(url)
                 send(.wallet(.refreshTapped))
             }
-            return task
-        case .account(let action):
-            let task = accountReducer.reduce(
-                into: &state.account,
-                action: action,
-                send: { send(.account($0)) }
-            )
-
-            if case .importResult(.success(let addr)) = action {
-                state.wallet.address = addr
-            }
-            if case .onAppear = action, let addr = state.account.address {
-                state.wallet.address = addr
-            }
-
             return task
         }
     }

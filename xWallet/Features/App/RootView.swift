@@ -9,16 +9,9 @@ import SwiftUI
 
 struct RootView: View {
     @ObservedObject var appStore: Store<AppReducer>
-    @StateObject private var accountStore: ScopedStore<AppReducer, AccountState, AccountAction>
     
     init(appStore: Store<AppReducer>) {
         self.appStore = appStore
-        _accountStore = StateObject(
-            wrappedValue: appStore.scope(
-                state: \.account,
-                action: AppAction.account
-            )
-        )
     }
 
     var body: some View {
@@ -32,7 +25,7 @@ struct RootView: View {
     private var root: some View {
         switch appStore.state.launchPhase {
         case .booting, .needsOnboarding:
-            ImportAccountView(store: accountStore)
+            ContentView(appStore: appStore)
         case .ready:
             ContentView(appStore: appStore)
         }

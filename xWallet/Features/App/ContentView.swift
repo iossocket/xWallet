@@ -3,7 +3,6 @@ import SwiftUI
 typealias AppStore = Store<AppReducer>
 typealias WalletStore = ScopedStore<AppReducer, WalletState, WalletAction>
 typealias SettingsStore = ScopedStore<AppReducer, SettingsState, SettingsAction>
-typealias AccountStore = ScopedStore<AppReducer, AccountState, AccountAction>
 
 // MARK: - Main View
 struct ContentView: View {
@@ -11,13 +10,11 @@ struct ContentView: View {
     
     @StateObject private var walletStore: WalletStore
     @StateObject private var settingsStore: SettingsStore
-    @StateObject private var accountStore: AccountStore
     
     init(appStore: Store<AppReducer>) {
         self.appStore = appStore
         _walletStore = StateObject(wrappedValue: appStore.scope(state: \.wallet, action: AppAction.wallet))
         _settingsStore = StateObject(wrappedValue: appStore.scope(state: \.settings, action: AppAction.settings))
-        _accountStore = StateObject(wrappedValue: appStore.scope(state: \.account, action: AppAction.account))
     }
     
     
