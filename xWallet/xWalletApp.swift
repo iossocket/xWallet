@@ -6,18 +6,21 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 @main
 struct xWalletApp: App {
-    @StateObject private var appStore = Store(initialState: AppState(), reducer: AppReducer())
+    let store = Store(initialState: AppFeature.State()) {
+        AppFeature()
+    }
     
     init() {
-        Dependencies.bootstrap()
+//        Dependencies.bootstrap()
 //        WalletCoreValidator.runQuickCheck()
     }
     var body: some Scene {
         WindowGroup {
-            RootView(appStore: appStore)
+            RootView(store: store)
         }
     }
 }

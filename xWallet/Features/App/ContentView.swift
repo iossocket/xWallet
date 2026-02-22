@@ -1,24 +1,16 @@
+import ComposableArchitecture
 import SwiftUI
 
-typealias AppStore = Store<AppReducer>
-
-// MARK: - Main View
 struct ContentView: View {
-    @ObservedObject var appStore: Store<AppReducer>
-    
-    init(appStore: Store<AppReducer>) {
-        self.appStore = appStore
-    }
-    
-    
+    @Bindable var store: StoreOf<AppFeature>
+
     var body: some View {
-        TabView(selection: Binding(
-            get: { appStore.state.selectedTab },
-            set: { appStore.send(.tabSelected($0)) }
-        )) {
-//            WalletTabView(store: walletStore)
-//                .tabItem { Label("Wallet", systemImage: "wallet.pass.fill") }
-//                .tag(Tab.wallet)
+        TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
+            WalletTabView(
+                store: store.scope(state: \.wallet, action: \.wallet)
+            )
+            .tabItem { Label("Wallet", systemImage: "wallet.pass.fill") }
+            .tag(Tab.wallet)
 
             Text("Market")
                 .tabItem { Label("Market", systemImage: "chart.bar.fill") }
@@ -28,9 +20,11 @@ struct ContentView: View {
                 .tabItem { Label("Discover", systemImage: "safari.fill") }
                 .tag(Tab.discover)
 
-//            SettingsView(store: settingsStore)
-//                .tabItem { Label("Settings", systemImage: "gearshape.fill") }
-//                .tag(Tab.profile)
+            SettingsView(
+                store: store.scope(state: \.settings, action: \.settings)
+            )
+            .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+            .tag(Tab.profile)
         }
     }
 }

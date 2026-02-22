@@ -6,28 +6,27 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
 
 struct RootView: View {
-    @ObservedObject var appStore: Store<AppReducer>
-    
-    init(appStore: Store<AppReducer>) {
-        self.appStore = appStore
-    }
+    let store: StoreOf<AppFeature>
 
     var body: some View {
         root.task {
-            appStore.send(.appLaunched)
+            store.send(.appLaunched)
         }
     }
     
     
     @ViewBuilder
     private var root: some View {
-        switch appStore.state.launchPhase {
+        switch store.launchPhase {
         case .booting, .needsOnboarding:
-            ContentView(appStore: appStore)
+            ImportAccountView(
+                store: store.scope(state: \.account, action: \.account)
+            )
         case .ready:
-            ContentView(appStore: appStore)
+            ContentView(store: store)
         }
     }
 }
@@ -35,10 +34,9 @@ struct RootView: View {
 // Preview
 #Preview {
     RootView(
-        appStore: Store(
-            initialState: AppState(),
-            reducer: AppReducer()
-        )
+        store: Store(initialState: AppFeature.State(), reducer: {
+            AppFeature()
+        })
     )
 }
 
