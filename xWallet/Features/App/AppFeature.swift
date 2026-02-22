@@ -66,10 +66,7 @@ struct AppFeature {
                 }
                 return .none
             case .settings(.saveButtonTapped):
-                if case .connected = state.settings.connectionStatus,
-                   state.settings.isValid {
-                    let url = state.settings.rpcURL
-                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                if case .connected = state.settings.connectionStatus, state.settings.isValid {
                     return .send(.wallet(.refreshButtonTapped))
                 }
                 return .none
