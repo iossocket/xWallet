@@ -6,8 +6,40 @@
 //
 
 import SwiftUI
+import ComposableArchitecture
+
+@Reducer 
+struct Receive {
+    @ObservableState
+    struct State: Equatable {
+        var address: String
+        var showCopiedToast = false
+    }
+    
+    enum Action {
+        case copyAddress
+        case shareAddress
+        case copiedToastDismissed
+    }
+    
+    var body: some ReducerOf<Self> {
+        Reduce { state, action in
+            switch action {
+            case .copyAddress:
+                UIPasteboard.general.string = state.address
+                return .none
+            case .shareAddress:
+                return .none
+            case .copiedToastDismissed:
+                return .none
+            }
+        }
+    }
+}
 
 struct ReceiveView: View {
+    var store: StoreOf<Receive>
+    
     var body: some View {
         ZStack {
             Color(hex: "121212").ignoresSafeArea()
@@ -47,14 +79,18 @@ struct ReceiveView: View {
                             .fontWeight(.bold)
                             .foregroundStyle(.gray)
                         
-                        Text("0x71C7...B5f6")
+                        Text(store.address)
                             .font(.system(.body, design: .monospaced))
                             .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                     
                     Spacer()
                     
-                    Button(action: {}) {
+                    Button(action: {
+                        store.send(.copyAddress)
+                    }) {
                         Image(systemName: "doc.on.doc")
                             .foregroundStyle(.white)
                             .padding(10)
@@ -70,7 +106,9 @@ struct ReceiveView: View {
                         .stroke(Color.white.opacity(0.1), lineWidth: 1)
                 )
                 
-                Button(action: {}) {
+                Button(action: {
+                    store.send(.shareAddress)
+                }) {
                     Text("Share Address")
                         .font(.headline)
                         .foregroundStyle(.white)

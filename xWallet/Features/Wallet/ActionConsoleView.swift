@@ -7,13 +7,13 @@
 import SwiftUI
 
 struct ActionConsoleView: View {
-    @Binding var showReceiveSheet: Bool
+    var receiveButtonTapped: () -> Void
     
     var body: some View {
         HStack(spacing: 0) {
             ActionButton(icon: "arrow.up.right", label: "Send")
             ActionButton(icon: "arrow.down.left", label: "Receive", isActive: true) {
-                showReceiveSheet = true
+                receiveButtonTapped()
             }
             ActionButton(icon: "arrow.triangle.2.circlepath", label: "Swap")
             ActionButton(icon: "plus", label: "Buy")

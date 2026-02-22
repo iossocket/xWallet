@@ -12,11 +12,7 @@ struct WalletTabView: View {
     @Bindable var store: StoreOf<Wallet>
     
     private var showBalanceBinding: Binding<Bool> {
-        $store.showBalance.sending(\.toggleShowBalanceButtonTapped)
-    }
-    
-    private var receiveSheetBinding: Binding<Bool> {
-        $store.isReceiveSheetPresented.sending(\.setReceiveSheetPresented)
+        $store.showBalance.sending(\.setShowBalance)
     }
     
     var body: some View {
@@ -39,7 +35,9 @@ struct WalletTabView: View {
                     
                     // Floating action console
                     // Use negative offset to achieve "overlapping" effect
-                    ActionConsoleView(showReceiveSheet: receiveSheetBinding)
+                    ActionConsoleView(receiveButtonTapped: { [weak store] in
+                        store?.send(.receiveButtonTapped)
+                    })
                         .offset(y: -40)
                         .padding(.bottom, -20)
                         .zIndex(2)
@@ -55,12 +53,11 @@ struct WalletTabView: View {
         .background(Color(hex: "050505")) // Dark background
         .ignoresSafeArea() // Let background fill entire screen
         .preferredColorScheme(.dark) // Force dark mode
-        .sheet(isPresented: receiveSheetBinding) {
-            ReceiveView()
-                .presentationDetents([.fraction(0.65)]) // Half-screen drawer
-                .presentationDragIndicator(.visible)
+        .sheet(item: $store.scope(state: \.receive, action: \.receive), content: { receiveStore in
+            ReceiveView(store: receiveStore)
+                .presentationDetents([.fraction(0.65)])
                 .presentationCornerRadius(32)
-        }
+        })
         .onAppear {
             store.send(.refreshButtonTapped)
         }

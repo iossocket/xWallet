@@ -14,21 +14,22 @@ import BigInt
 struct Wallet {
     @ObservableState
     struct State: Equatable {
+        @Presents var receive: Receive.State?
         var address: String?
         var assets: [AssetItem] = []
         var errorMessage: String?
         var ethBalance: String?
         var isLoading = false
-        var isReceiveSheetPresented = false
         var showBalance = true
         var totalBalance = "1,161,2.0"
     }
     
     enum Action {
+        case receive(PresentationAction<Receive.Action>)
         case balanceResponse(Result<BigUInt, Error>)
         case refreshButtonTapped
-        case setReceiveSheetPresented(Bool)
-        case toggleShowBalanceButtonTapped(Bool)
+        case receiveButtonTapped
+        case setShowBalance(Bool)
     }
     
     @Dependency(\.ethereum) var ethereum
@@ -71,14 +72,17 @@ struct Wallet {
                 state.errorMessage = error.localizedDescription
                 return .none
 
-            case .toggleShowBalanceButtonTapped(let isShowBalance):
+            case .setShowBalance(let isShowBalance):
                 state.showBalance = isShowBalance
                 return .none
-
-            case .setReceiveSheetPresented(let isPresented):
-                state.isReceiveSheetPresented = isPresented
+            case .receiveButtonTapped:
+                state.receive = Receive.State(address: state.address!)
+                return .none
+            case .receive:
                 return .none
             }
+        }.ifLet(\.$receive, action: \.receive) {
+            Receive()
         }
     }
 }
