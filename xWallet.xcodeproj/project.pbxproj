@@ -16,14 +16,30 @@
 		5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		5AB3E60B2F4C450A00B70BC6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A54CB1D2ED3219E005AF084 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5A54CB242ED3219E005AF084;
+			remoteInfo = xWallet;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		5A54CB252ED3219E005AF084 /* xWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = xWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5A54CB272ED3219E005AF084 /* xWallet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = xWallet;
+			sourceTree = "<group>";
+		};
+		5AB3E6082F4C450A00B70BC6 /* xWalletTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = xWalletTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +59,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5AB3E6042F4C450A00B70BC6 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -50,6 +73,7 @@
 			isa = PBXGroup;
 			children = (
 				5A54CB272ED3219E005AF084 /* xWallet */,
+				5AB3E6082F4C450A00B70BC6 /* xWalletTests */,
 				5A54CB262ED3219E005AF084 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,6 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				5A54CB252ED3219E005AF084 /* xWallet.app */,
+				5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -94,6 +119,29 @@
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
 			productType = "com.apple.product-type.application";
 		};
+		5AB3E6062F4C450A00B70BC6 /* xWalletTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5AB3E60D2F4C450A00B70BC6 /* Build configuration list for PBXNativeTarget "xWalletTests" */;
+			buildPhases = (
+				5AB3E6032F4C450A00B70BC6 /* Sources */,
+				5AB3E6042F4C450A00B70BC6 /* Frameworks */,
+				5AB3E6052F4C450A00B70BC6 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5AB3E60C2F4C450A00B70BC6 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				5AB3E6082F4C450A00B70BC6 /* xWalletTests */,
+			);
+			name = xWalletTests;
+			packageProductDependencies = (
+			);
+			productName = xWalletTests;
+			productReference = 5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -101,11 +149,15 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1640;
+				LastSwiftUpdateCheck = 2620;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					5A54CB242ED3219E005AF084 = {
 						CreatedOnToolsVersion = 16.4;
+					};
+					5AB3E6062F4C450A00B70BC6 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 5A54CB242ED3219E005AF084;
 					};
 				};
 			};
@@ -129,12 +181,20 @@
 			projectRoot = "";
 			targets = (
 				5A54CB242ED3219E005AF084 /* xWallet */,
+				5AB3E6062F4C450A00B70BC6 /* xWalletTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5A54CB232ED3219E005AF084 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5AB3E6052F4C450A00B70BC6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -151,7 +211,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5AB3E6032F4C450A00B70BC6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5AB3E60C2F4C450A00B70BC6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5A54CB242ED3219E005AF084 /* xWallet */;
+			targetProxy = 5AB3E60B2F4C450A00B70BC6 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5A54CB2E2ED3219F005AF084 /* Debug */ = {
@@ -333,6 +408,50 @@
 			};
 			name = Release;
 		};
+		5AB3E60E2F4C450A00B70BC6 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 58NRP65K4S;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iossocket.xWalletTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/xWallet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/xWallet";
+			};
+			name = Debug;
+		};
+		5AB3E60F2F4C450A00B70BC6 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 58NRP65K4S;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.iossocket.xWalletTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/xWallet.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/xWallet";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -350,6 +469,15 @@
 			buildConfigurations = (
 				5A54CB312ED3219F005AF084 /* Debug */,
 				5A54CB322ED3219F005AF084 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5AB3E60D2F4C450A00B70BC6 /* Build configuration list for PBXNativeTarget "xWalletTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5AB3E60E2F4C450A00B70BC6 /* Debug */,
+				5AB3E60F2F4C450A00B70BC6 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
