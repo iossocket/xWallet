@@ -16,7 +16,7 @@ struct Wallet {
     struct State: Equatable {
         @Presents var receive: Receive.State?
         var address: String?
-        var assets: [AssetItem] = []
+        var assets: IdentifiedArrayOf<AssetItem> = []
         var errorMessage: String?
         var ethBalance: String?
         var isLoading = false

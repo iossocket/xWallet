@@ -6,10 +6,11 @@
 //
 
 import SwiftUI
+import IdentifiedCollections
 
 struct AssetListView: View {
     var showBalance: Bool
-    var assets: [AssetItem]
+    var assets: IdentifiedArrayOf<AssetItem>
     
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
