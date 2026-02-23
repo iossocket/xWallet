@@ -32,6 +32,10 @@ struct Wallet {
         case setShowBalance(Bool)
     }
     
+    enum CancelID {
+        case balanceRequest
+    }
+    
     @Dependency(\.ethereum) var ethereum
     
     var body: some ReducerOf<Self> {
@@ -60,7 +64,7 @@ struct Wallet {
                     } catch {
                         await send(.balanceResponse(.failure(error)))
                     }
-                }
+                }.cancellable(id: CancelID.balanceRequest, cancelInFlight: true)
 
             case .balanceResponse(.success(let balance)):
                 state.isLoading = false

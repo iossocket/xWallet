@@ -25,6 +25,10 @@ struct Settings {
         var rpcURL = ""
     }
     
+    enum CancelID {
+        case rpcCheck
+    }
+    
     enum Action: BindableAction {
         case binding(BindingAction<State>)
         case checkButtonTapped
@@ -71,7 +75,7 @@ struct Settings {
                     } catch {
                         await send(.checkResponse(.failure(error)))
                     }
-                }
+                }.cancellable(id: CancelID.rpcCheck, cancelInFlight: true)
 
             case .checkResponse(.success(let chainId)):
                 state.isChecking = false
