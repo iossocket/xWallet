@@ -8,25 +8,30 @@
 import Foundation
 import Dependencies
 
-final class KeyValueStorageService {
-    func save(value: String, forKey key: String) {
-        UserDefaults.standard.set(value, forKey: key)
-    }
-    
-    func load(forKey key: String) -> String? {
-        return UserDefaults.standard.string(forKey: key)
-    }
+struct KeyValueStorageClient {
+    var save: @Sendable (String, String) -> Void
+    var load: @Sendable (String) -> String?
 }
 
-extension KeyValueStorageService: DependencyKey {
-    static var liveValue: KeyValueStorageService {
-        KeyValueStorageService()
+extension KeyValueStorageClient: DependencyKey {
+    static var liveValue: KeyValueStorageClient {
+        KeyValueStorageClient(
+            save: { value, key in UserDefaults.standard.set(value, forKey: key) },
+            load: { key in UserDefaults.standard.string(forKey: key) }
+        )
+    }
+
+    static var testValue: KeyValueStorageClient {
+        KeyValueStorageClient(
+            save: { _, _ in },
+            load: { _ in nil }
+        )
     }
 }
 
 extension DependencyValues {
-    var keyValueStorage: KeyValueStorageService {
-        get { self[KeyValueStorageService.self] }
-        set { self[KeyValueStorageService.self] = newValue }
+    var keyValueStorage: KeyValueStorageClient {
+        get { self[KeyValueStorageClient.self] }
+        set { self[KeyValueStorageClient.self] = newValue }
     }
 }

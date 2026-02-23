@@ -49,7 +49,7 @@ struct Settings {
                 return .none
 
             case .onAppear:
-                state.rpcURL = keyValueStorage.load(forKey: "rpc_url")
+                state.rpcURL = keyValueStorage.load("rpc_url")
                     ?? "https://rpc.sepolia.org"
                 state.isValid = state.rpcURL.hasPrefix("https://")
                 return .none
@@ -82,7 +82,7 @@ struct Settings {
                 state.chainId = chainId
                 state.connectionStatus = .connected
                 if let url = state.pendingSaveURL {
-                    keyValueStorage.save(value: url, forKey: "rpc_url")
+                    keyValueStorage.save(url, "rpc_url")
                     state.pendingSaveURL = nil
                 }
                 return .none
@@ -96,7 +96,7 @@ struct Settings {
                 guard state.isValid else { return .none }
                 let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
                 if case .connected = state.connectionStatus {
-                    keyValueStorage.save(value: trimmed, forKey: "rpc_url")
+                    keyValueStorage.save(trimmed, "rpc_url")
                     return .none
                 } else {
                     state.pendingSaveURL = trimmed

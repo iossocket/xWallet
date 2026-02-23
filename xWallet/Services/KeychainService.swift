@@ -21,6 +21,12 @@ enum KeychainError: Error, LocalizedError, Equatable {
     }
 }
 
+struct KeychainClient {
+    var saveData: @Sendable (Data, String) throws -> Void
+    var loadData: @Sendable (String) throws -> Data
+    var delete: @Sendable (String) throws -> Void
+}
+
 final class KeychainService {
     private let service: String
 
@@ -78,16 +84,38 @@ final class KeychainService {
     }
 }
 
-extension KeychainService: DependencyKey {
-    static var liveValue: KeychainService {
-        return KeychainService()
+extension KeychainClient: DependencyKey {
+    static var liveValue: KeychainClient {
+        let service = KeychainService()
+        return KeychainClient(
+            saveData: { data, account in try service.saveData(data, account: account) },
+            loadData: { account in try service.loadData(account: account) },
+            delete: { account in try service.delete(account: account) }
+        )
+    }
+
+    static var testValue: KeychainClient {
+        KeychainClient(
+            saveData: { _, _ in },
+            loadData: { _ in throw KeychainError.itemNotFound },
+            delete: { _ in }
+        )
+    }
+
+    static var previewValue: KeychainClient {
+        KeychainClient(
+            saveData: { _, _ in },
+            loadData: { _ in throw KeychainError.itemNotFound },
+            delete: { _ in }
+        )
     }
 }
 
+
 extension DependencyValues {
-    var keychain: KeychainService {
-        get { self[KeychainService.self] }
-        set { self[KeychainService.self] = newValue }
+    var keychain: KeychainClient {
+        get { self[KeychainClient.self] }
+        set { self[KeychainClient.self] = newValue }
     }
 }
 

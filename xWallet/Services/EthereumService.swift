@@ -46,6 +46,12 @@ extension EvmRpcClient: DependencyKey {
             return chainId
         }
     }
+    
+    static var testValue: EvmRpcClient {
+        EvmRpcClient(
+            getChainId: { _ in 1 }
+        )
+    }
 }
 
 extension DependencyValues {

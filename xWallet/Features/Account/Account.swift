@@ -33,7 +33,7 @@ struct Account {
             switch action {
             case .onAppear:
                 do {
-                    let pkData = try keychain.loadData(account: keyPrivateKey)
+                    let pkData = try keychain.loadData(keyPrivateKey)
                     if let address = try? Secp256k1.ethereumAddress(fromPrivateKey: pkData) {
                         state.address = address.checksummed
                         state.isUnlocked = true
@@ -48,7 +48,7 @@ struct Account {
                     do {
                         let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
                         let address = try Secp256k1.ethereumAddress(fromPrivateKey: pkData)
-                        try keychain.saveData(pkData, account: key)
+                        try keychain.saveData(pkData, key)
                         await send(.importResponse(.success(address.checksummed)))
                     } catch {
                         await send(.importResponse(.failure(error)))
