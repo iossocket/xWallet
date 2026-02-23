@@ -74,5 +74,8 @@ struct AppFeature {
                 return .none
             }
         }
+        #if DEBUG
+        ._printChanges()
+        #endif
     }
 }
