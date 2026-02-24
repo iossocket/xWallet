@@ -21,9 +21,12 @@ enum EthereumServiceError: Error {
 
 extension EthereumService: DependencyKey {
     static var liveValue: EthereumService {
-        let url = URL(string: "http://127.0.0.1:8545")!
-        let ethereumProvider = EthereumProvider(chain: Ethereum(chainId: 31337, name: "anvil", rpcURL: url, isTestnet: true))
-        return EthereumService(provider: ethereumProvider)
+        let rpcURL = UserDefaults.standard.string(forKey: "rpc_url")
+            ?? "https://rpc.sepolia.org"
+        let url = URL(string: rpcURL) ?? URL(string: "https://rpc.sepolia.org")!
+        let chain = Ethereum(rpcURL: url)
+        let provider = EthereumProvider(chain: chain)
+        return EthereumService(provider: provider)
     }
 }
 
