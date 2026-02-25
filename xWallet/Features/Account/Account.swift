@@ -10,6 +10,7 @@ import EthereumKit
 
 enum OnboardingStep: Equatable {
     case landing
+    case selectChain
     case showMnemonic
     case verifyMnemonic
     case importMnemonic
@@ -20,75 +21,146 @@ enum OnboardingStep: Equatable {
 struct Account {
     @ObservableState
     struct State: Equatable {
-        var address: String?
         var errorMessage: String?
         var isUnlocked: Bool = false
-//        var onboardingStep: OnboardingStep = .landing
-//        var generatedMnemonic: String = ""
-//        var mnemonicInput: String = ""
-//        var mnemonicConfirmWords: [String] = []
-//        var isLoading: Bool = false
+
+        var onboardingStep: OnboardingStep = .landing
+        var selectedChain: ChainType = .evm
+        var generatedMnemonic: String = ""
+        var mnemonicInput: String = ""
+        var privateKeyInput: String = ""
+        var walletNameInput: String = ""
+        var isLoading: Bool = false
+        
+        var activeIdentity: WalletIdentity?
     }
     
     enum Action {
-        case importButtonTapped(String)
-        case importResponse(Result<String, Error>)
-        case lockButtonTapped
         case onAppear
-        
-//        case createWalletTapped
-//        case createWalletResponse(Result<WalletSnapshot, Error>)
-//        case showImportMnemonicTapped
-//        case mnemonicInputChanged(String)
-//        case importMnemonicTapped
-//        case importMnemonicResponse(Result<WalletSnapshot, Error>)
-//        case mnemonicBackupConfirmed
+        case lockButtonTapped
+        case chainSelected(ChainType)
+
+        // new wallet
+        case createWalletTapped
+        case createWalletResponse(Result<WalletIdentity, Error>)
+        case mnemonicBackupConfirmed
+
+        // import mnemonic
+        case showImportMnemonicTapped
+        case mnemonicInputChanged(String)
+        case importMnemonicTapped
+        case importMnemonicResponse(Result<WalletIdentity, Error>)
+
+        // import private key
+        case showImportPrivateKeyTapped
+        case privateKeyInputChanged(String)
+        case importPrivateKeyTapped
+        case importPrivateKeyResponse(Result<WalletIdentity, Error>)
+
+        case walletNameChanged(String)
     }
     
-    @Dependency(\.keychain) var keychain
-    
-    private let keyPrivateKey = "evm_private_key"
+    @Dependency(\.walletClient) var walletClient
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case .onAppear:
-                do {
-                    let pkData = try keychain.loadData(keyPrivateKey)
-                    if let address = try? Secp256k1.ethereumAddress(fromPrivateKey: pkData) {
-                        state.address = address.checksummed
-                        state.isUnlocked = true
+                return .run { [walletClient] send in
+                    if let identity = try? await walletClient.activeIdentity() {
+                        await send(.createWalletResponse(.success(identity)))
                     }
-                } catch {
-                    
+                }
+            case .chainSelected(let chain):
+                state.selectedChain = chain
+                return .none
+            case .createWalletTapped:
+                state.isLoading = true
+                state.errorMessage = nil
+                let chain = state.selectedChain
+                let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                return .run { [walletClient] send in
+                    await send(.createWalletResponse(
+                        Result { try await walletClient.createWallet(name, chain) }
+                    ))
+                }
+            case .createWalletResponse(.success(let identity)):
+                state.isLoading = false
+                state.activeIdentity = identity
+                if identity.sourceType == .mnemonic && !state.generatedMnemonic.isEmpty {
+                    state.onboardingStep = .showMnemonic
+                } else {
+                    state.isUnlocked = true
                 }
                 return .none
-            case .importButtonTapped(let hex):
+            case .createWalletResponse(.failure(let error)):
+                state.isLoading = false
+                state.errorMessage = error.localizedDescription
+                return .none
+            case .mnemonicBackupConfirmed:
+                state.isUnlocked = true
+                state.generatedMnemonic = ""
+                return .none
+            case .showImportMnemonicTapped:
+                state.onboardingStep = .importMnemonic
+                return .none
+            case .mnemonicInputChanged(let input):
+                state.mnemonicInput = input
+                return .none
+            case .importMnemonicTapped:
+                state.isLoading = true
                 state.errorMessage = nil
-                return .run { [keychain = self.keychain, key = self.keyPrivateKey] send in
-                    do {
-                        let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
-                        let address = try Secp256k1.ethereumAddress(fromPrivateKey: pkData)
-                        try keychain.saveData(pkData, key)
-                        await send(.importResponse(.success(address.checksummed)))
-                    } catch {
-                        await send(.importResponse(.failure(error)))
-                    }
+                let mnemonic = state.mnemonicInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                let chain = state.selectedChain
+                let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                return .run { [walletClient] send in
+                    await send(.importMnemonicResponse(
+                        Result { try await walletClient.importMnemonic(mnemonic, name, chain) }
+                    ))
                 }
-            case .importResponse(.success(let address)):
-                state.address = address
+            case .importMnemonicResponse(.success(let identity)):
+                state.isLoading = false
+                state.activeIdentity = identity
                 state.isUnlocked = true
                 state.errorMessage = nil
                 return .none
-
-            case .importResponse(.failure(let error)):
+            case .importMnemonicResponse(.failure(let error)):
+                state.isLoading = false
                 state.errorMessage = error.localizedDescription
-                state.isUnlocked = false
                 return .none
-
+            case .showImportPrivateKeyTapped:
+                state.onboardingStep = .importPrivateKey
+                return .none
+            case .privateKeyInputChanged(let input):
+                state.privateKeyInput = input
+                return .none
+            case .importPrivateKeyTapped:
+                state.isLoading = true
+                state.errorMessage = nil
+                let hex = state.privateKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                let chain = state.selectedChain
+                let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                return .run { [walletClient] send in
+                    await send(.importPrivateKeyResponse(
+                        Result { try await walletClient.importPrivateKey(hex, name, chain) }
+                    ))
+                }
+            case .importPrivateKeyResponse(.success(let identity)):
+                state.isLoading = false
+                state.activeIdentity = identity
+                state.isUnlocked = true
+                state.errorMessage = nil
+                return .none
+            case .importPrivateKeyResponse(.failure(let error)):
+                state.isLoading = false
+                state.errorMessage = error.localizedDescription
+                return .none
+            case .walletNameChanged(let name):
+                state.walletNameInput = name
+                return .none
             case .lockButtonTapped:
                 state.isUnlocked = false
-                state.address = nil
+                state.activeIdentity = nil
                 return .none
             }
         }

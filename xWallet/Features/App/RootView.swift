@@ -13,7 +13,6 @@ struct RootView: View {
 
     var body: some View {
         root.task {
-            store.send(.appLaunched)
         }
     }
     

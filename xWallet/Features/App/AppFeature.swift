@@ -31,7 +31,6 @@ struct AppFeature {
     
     enum Action {
         case account(Account.Action)
-        case appLaunched
         case settings(Settings.Action)
         case tabSelected(Tab)
         case wallet(Wallet.Action)
@@ -49,27 +48,30 @@ struct AppFeature {
         }
         Reduce { state, action in
             switch action {
-            case .appLaunched:
-                state.launchPhase = .needsOnboarding
-                return .none
             case .tabSelected(let tab):
                 state.selectedTab = tab
                 return .none
-            case .account(.importResponse(.success(let address))):
-                state.wallet.address = address
+
+            case .account(.createWalletResponse(.success(let identity))),
+                 .account(.importMnemonicResponse(.success(let identity))),
+                 .account(.importPrivateKeyResponse(.success(let identity))):
+                state.wallet.address = identity.primaryAddress
                 state.launchPhase = .ready
                 return .none
+
             case .account(.onAppear):
-                if let addr = state.account.address {
-                    state.wallet.address = addr
+                if let identity = state.account.activeIdentity {
+                    state.wallet.address = identity.primaryAddress
                     state.launchPhase = .ready
                 }
                 return .none
+
             case .settings(.saveButtonTapped):
                 if case .connected = state.settings.connectionStatus, state.settings.isValid {
                     return .send(.wallet(.refreshButtonTapped))
                 }
                 return .none
+
             case .account, .settings, .wallet:
                 return .none
             }
