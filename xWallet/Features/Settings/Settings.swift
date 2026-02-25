@@ -6,6 +6,8 @@
 //
 
 import ComposableArchitecture
+import EthereumKit
+import Foundation
 
 enum ConnectionStatus: Equatable {
     case idle
@@ -39,7 +41,7 @@ struct Settings {
     }
     
     @Dependency(\.keyValueStorage) var keyValueStorage
-    @Dependency(\.evmRpcClient) var evmRpcClient
+    @Dependency(\.evmProvider) var evmProvider
     
     var body: some ReducerOf<Self> {
         BindingReducer()
@@ -70,7 +72,11 @@ struct Settings {
                 let url = state.rpcURL.trimmingCharacters(in: .whitespacesAndNewlines)
                 return .run { send in
                     do {
-                        let chainId = try await evmRpcClient.getChainId(url)
+                        let provider = evmProvider.provider(EvmChain(rpcURL: URL(string: url)!))
+                        let hex: String = try await provider.send(
+                            request: provider.chainIdRequest()
+                        )
+                        let chainId = Int(hex.dropFirst(2), radix: 16) ?? 0
                         await send(.checkResponse(.success(chainId)))
                     } catch {
                         await send(.checkResponse(.failure(error)))

@@ -16,6 +16,7 @@ struct Wallet {
     struct State: Equatable {
         @Presents var receive: Receive.State?
         var address: String?
+        
         var assets: IdentifiedArrayOf<AssetItem> = []
         var errorMessage: String?
         var ethBalance: String?
@@ -36,7 +37,7 @@ struct Wallet {
         case balanceRequest
     }
     
-    @Dependency(\.ethereum) var ethereum
+    @Dependency(\.evmProvider) var evmProvider
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -46,18 +47,19 @@ struct Wallet {
                 state.errorMessage = nil
                 state.assets = AssetItem.preset
                 guard let address = state.address else { return .none }
-                return .run { [provider = ethereum.provider] send in
+                return .run { [providerFactory = evmProvider.provider] send in
                     do {
                         guard let evmAddr = EthereumAddress(address) else {
                             return
                         }
+                        let provider = providerFactory(.anvil)
                         let request = provider.getBalanceRequest(address: evmAddr, block: BlockTag.latest)
                         let result: String = try await provider.send(request: request)
                         let cleaned = result.lowercased().hasPrefix("0x")
                                 ? String(result.dropFirst(2))
                                 : result
                         guard let balance = BigUInt(cleaned, radix: 16) else {
-                            await send(.balanceResponse(.failure(EthereumServiceError.invalidNumber)))
+                            await send(.balanceResponse(.failure(EvmProviderClientError.invalidNumber)))
                             return
                         }
                         await send(.balanceResponse(.success(balance)))

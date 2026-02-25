@@ -14,6 +14,7 @@
 		5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */; };
 		5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */; };
 		5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */; };
+		5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E6272F4ED0F600B70BC6 /* GRDB */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -52,6 +53,7 @@
 				5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */,
 				5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */,
 				5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */,
+				5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */,
 				5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */,
 				5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */,
 				5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */,
@@ -114,6 +116,7 @@
 				5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */,
 				5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */,
 				5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */,
+				5AB3E6272F4ED0F600B70BC6 /* GRDB */,
 			);
 			productName = xWallet;
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
@@ -174,6 +177,7 @@
 				5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */,
 				5AB3E5E02F41D4AD00B70BC6 /* XCLocalSwiftPackageReference "../../../../../../../Volumes/PSSD/projects/MultiChainKit" */,
 				5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
+				5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A54CB262ED3219E005AF084 /* Products */;
@@ -508,6 +512,14 @@
 				minimumVersion = 1.23.1;
 			};
 		};
+		5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift";
+			requirement = {
+				kind = exactVersion;
+				version = 7.10.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -541,6 +553,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */;
 			productName = ComposableArchitecture;
+		};
+		5AB3E6272F4ED0F600B70BC6 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */;
+			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -8,6 +8,14 @@
 import ComposableArchitecture
 import EthereumKit
 
+enum OnboardingStep: Equatable {
+    case landing
+    case showMnemonic
+    case verifyMnemonic
+    case importMnemonic
+    case importPrivateKey
+}
+
 @Reducer
 struct Account {
     @ObservableState
@@ -15,6 +23,11 @@ struct Account {
         var address: String?
         var errorMessage: String?
         var isUnlocked: Bool = false
+//        var onboardingStep: OnboardingStep = .landing
+//        var generatedMnemonic: String = ""
+//        var mnemonicInput: String = ""
+//        var mnemonicConfirmWords: [String] = []
+//        var isLoading: Bool = false
     }
     
     enum Action {
@@ -22,6 +35,14 @@ struct Account {
         case importResponse(Result<String, Error>)
         case lockButtonTapped
         case onAppear
+        
+//        case createWalletTapped
+//        case createWalletResponse(Result<WalletSnapshot, Error>)
+//        case showImportMnemonicTapped
+//        case mnemonicInputChanged(String)
+//        case importMnemonicTapped
+//        case importMnemonicResponse(Result<WalletSnapshot, Error>)
+//        case mnemonicBackupConfirmed
     }
     
     @Dependency(\.keychain) var keychain
