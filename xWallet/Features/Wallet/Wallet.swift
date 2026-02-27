@@ -15,7 +15,9 @@ struct Wallet {
     @ObservableState
     struct State: Equatable {
         @Presents var receive: Receive.State?
+        @Presents var send: Send.State?
         var address: String?
+        var currentChain: EvmChain = .sepolia
         
         var assets: IdentifiedArrayOf<AssetItem> = []
         var errorMessage: String?
@@ -27,10 +29,12 @@ struct Wallet {
     
     enum Action {
         case receive(PresentationAction<Receive.Action>)
+        case send(PresentationAction<Send.Action>)
         case balanceResponse(Result<BigUInt, Error>)
         case refreshButtonTapped
         case receiveButtonTapped
         case setShowBalance(Bool)
+        case sendButtonTapped
     }
     
     enum CancelID {
@@ -84,11 +88,18 @@ struct Wallet {
             case .receiveButtonTapped:
                 state.receive = Receive.State(address: state.address!)
                 return .none
+            case .sendButtonTapped:
+                state.send = Send.State(chain: state.currentChain)
+                return .none
+            case .send:
+                return .none
             case .receive:
                 return .none
             }
         }.ifLet(\.$receive, action: \.receive) {
             Receive()
+        }.ifLet(\.$send, action: \.send) {
+            Send()
         }
     }
 }

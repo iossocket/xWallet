@@ -7,11 +7,14 @@
 import SwiftUI
 
 struct ActionConsoleView: View {
+    var sendButtonTapped: () -> Void
     var receiveButtonTapped: () -> Void
-    
+
     var body: some View {
         HStack(spacing: 0) {
-            ActionButton(icon: "arrow.up.right", label: "Send")
+            ActionButton(icon: "arrow.up.right", label: "Send", isActive: true) {
+                sendButtonTapped()
+            }
             ActionButton(icon: "arrow.down.left", label: "Receive", isActive: true) {
                 receiveButtonTapped()
             }

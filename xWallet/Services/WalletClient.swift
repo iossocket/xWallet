@@ -53,7 +53,7 @@ struct WalletClient {
     var importPrivateKey: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
     var listWallets: @Sendable () async throws -> [WalletIdentity]
     var switchWallet: @Sendable (UUID) async throws -> Void
-    var activeEvmAccount: @Sendable () async throws -> EthereumSignableAccount
+    var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumSignableAccount
     var activeStarknetAccount: @Sendable () async throws -> StarknetAccount
     var activeIdentity: @Sendable () async throws -> WalletIdentity
     var deleteWallet: @Sendable (UUID) async throws -> Void
@@ -119,7 +119,7 @@ extension WalletClient: DependencyKey {
             switchWallet: { id in
                 try await storage.setActiveWallet(id)
             },
-            activeEvmAccount: {
+            activeEvmAccount: { provider in
                 let identity = try await storage.activeIdentity()
                 guard identity.chainType == .evm else {
                     throw WalletError.chainMismatch
@@ -128,10 +128,10 @@ extension WalletClient: DependencyKey {
                 switch secret {
                 case .mnemonic(let mnemonic):
                     let signer = try EthereumSigner(mnemonic: mnemonic, path: .ethereum)
-                    return try EthereumSignableAccount(signer)
+                    return try EthereumSignableAccount(signer, provider: provider)
                 case .privateKey(let data, _):
                     let signer = try EthereumSigner(privateKey: data)
-                    return try EthereumSignableAccount(signer)
+                    return try EthereumSignableAccount(signer, provider: provider)
                 }
             },
             activeStarknetAccount: {
@@ -191,7 +191,7 @@ extension WalletClient: DependencyKey {
             importPrivateKey: { _, _, _ in testIdentity },
             listWallets: { [testIdentity] },
             switchWallet: { _ in },
-            activeEvmAccount: { throw WalletError.notFound },
+            activeEvmAccount: { _ in throw WalletError.notFound },
             activeStarknetAccount: { throw WalletError.notFound },
             activeIdentity: { testIdentity },
             deleteWallet: { _ in }

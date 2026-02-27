@@ -41,8 +41,6 @@ struct ImportMnemonicView: View {
                         .padding(.horizontal)
                 }
 
-                Spacer()
-
                 Button {
                     store.send(.importMnemonicTapped)
                 } label: {
@@ -62,7 +60,21 @@ struct ImportMnemonicView: View {
                 }
                 .disabled(store.isLoading || store.mnemonicInput.isEmpty)
                 .padding(.horizontal)
-                .padding(.bottom, 32)
+                Spacer()
+                
+                Button {
+                    store.send(.backButtonTapped)
+                } label: {
+                    Text("Back")
+                        .font(.xTitle2)
+                        .foregroundStyle(Color.xTextPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.xBg2)
+                        .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
+                }
+                .padding(.horizontal)
+                .padding(.bottom, XSpacing.xxxl)
             }
             .padding(.top, 40)
         }

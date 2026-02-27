@@ -35,9 +35,14 @@ struct WalletTabView: View {
                     
                     // Floating action console
                     // Use negative offset to achieve "overlapping" effect
-                    ActionConsoleView(receiveButtonTapped: { [weak store] in
-                        store?.send(.receiveButtonTapped)
-                    })
+                    ActionConsoleView(
+                        sendButtonTapped: { [weak store] in
+                            store?.send(.sendButtonTapped)
+                        },
+                        receiveButtonTapped: { [weak store] in
+                            store?.send(.receiveButtonTapped)
+                        }
+                    )
                         .offset(y: -40)
                         .padding(.bottom, -20)
                         .zIndex(2)
@@ -58,7 +63,14 @@ struct WalletTabView: View {
                 .presentationDetents([.fraction(0.65)])
                 .presentationCornerRadius(32)
         })
-        .onAppear {
+        .sheet(
+            item: $store.scope(state: \.send, action: \.send)
+        ) { sendStore in
+            NavigationStack {
+                SendView(store: sendStore)
+            }
+        }
+        .task {
             store.send(.refreshButtonTapped)
         }
     }

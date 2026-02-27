@@ -41,7 +41,7 @@ struct ImportPrivateKeyView: View {
                         .padding(.horizontal)
                 }
 
-                Spacer()
+                
 
                 Button {
                     store.send(.importPrivateKeyTapped)
@@ -61,6 +61,19 @@ struct ImportPrivateKeyView: View {
                     .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
                 }
                 .disabled(store.isLoading || store.privateKeyInput.isEmpty)
+                .padding(.horizontal)
+                Spacer()
+                Button {
+                    store.send(.backButtonTapped)
+                } label: {
+                    Text("Back")
+                        .font(.xTitle2)
+                        .foregroundStyle(Color.xTextPrimary)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.xBg2)
+                        .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
+                }
                 .padding(.horizontal)
                 .padding(.bottom, XSpacing.xxxl)
             }

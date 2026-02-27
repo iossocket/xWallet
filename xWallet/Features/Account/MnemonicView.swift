@@ -68,3 +68,16 @@ struct MnemonicDisplayView: View {
         }
     }
 }
+
+#Preview {
+    MnemonicDisplayView(
+        store: Store(
+            initialState: Account.State(
+                onboardingStep: .importPrivateKey,
+                selectedChain: .evm
+            )
+        ) {
+            Account()
+        }
+    )
+}

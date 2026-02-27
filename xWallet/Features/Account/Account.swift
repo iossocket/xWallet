@@ -58,6 +58,7 @@ struct Account {
         case importPrivateKeyResponse(Result<WalletIdentity, Error>)
 
         case walletNameChanged(String)
+        case backButtonTapped
     }
     
     @Dependency(\.walletClient) var walletClient
@@ -161,6 +162,9 @@ struct Account {
             case .lockButtonTapped:
                 state.isUnlocked = false
                 state.activeIdentity = nil
+                return .none
+            case .backButtonTapped:
+                state.onboardingStep = .landing
                 return .none
             }
         }
