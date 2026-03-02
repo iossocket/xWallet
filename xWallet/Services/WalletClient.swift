@@ -12,41 +12,6 @@ import MultiChainCore
 import EthereumKit
 import GRDB
 
-
-enum ChainType: String, Codable, Equatable, Sendable {
-    case evm
-    case starknet
-}
-
-enum WalletSource: Equatable, Sendable {
-    case mnemonic(String)
-    case privateKey(Data, ChainType)
-}
-
-struct DerivedAddress: Equatable, Codable, Sendable {
-    let chain: ChainType              // .evm / .starknet
-    let path: String                  // "m/44'/60'/0'/0/0" when import by pk it will be ""
-    let address: String
-}
-
-struct WalletIdentity: Identifiable, Equatable, Sendable, Codable {
-    let id: UUID
-    var name: String                  // customized name
-    let sourceType: SourceType
-    let chainType: ChainType
-    let createdAt: Date
-    var derivedAddresses: [DerivedAddress]
-
-    enum SourceType: String, Codable, Sendable {
-        case mnemonic
-        case privateKey
-    }
-
-    var primaryAddress: String? {
-        derivedAddresses.first?.address
-    }
-}
-
 struct WalletClient {
     var createWallet: @Sendable (String?, ChainType) async throws -> WalletIdentity
     var importMnemonic: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
@@ -100,6 +65,7 @@ extension WalletClient: DependencyKey {
             importPrivateKey: { hex, name, chain in
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
                 let address = try deriveAddressFromPrivateKey(pkData, chain: chain)
+                // same private key will generate multipy same records
                 let identity = WalletIdentity(
                     id: UUID(),
                     name: name ?? defaultWalletName(chain: chain),
@@ -257,26 +223,6 @@ extension WalletClient {
     }
 }
 
-struct WalletIdentityRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
-    static let databaseTableName = "wallet_identity"
-
-    let id: String           // UUID string
-    var name: String
-    let sourceType: String   // "mnemonic" / "privateKey"
-    let chainType: String    // "evm" / "starknet"
-    let createdAt: Double    // timeIntervalSince1970
-    var isActive: Bool
-}
-
-struct DerivedAddressRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
-    static let databaseTableName = "derived_address"
-
-    let walletId: String
-    let chain: String
-    let path: String
-    let address: String
-}
-
 private actor WalletStorage {
     private let dbQueue: DatabaseQueue
     private let keychainService = KeychainService()
@@ -377,6 +323,34 @@ private actor WalletStorage {
                 .updateAll(db, Column("isActive").set(to: false))
             try WalletIdentityRecord
                 .filter(Column("id") == id.uuidString)
+                .updateAll(db, Column("isActive").set(to: true))
+        }
+    }
+    
+    func saveIdentityAndActiveWallet(_ identity: WalletIdentity) throws {
+        try dbQueue.write { db in
+            try WalletIdentityRecord(
+                id: identity.id.uuidString,
+                name: identity.name,
+                sourceType: identity.sourceType.rawValue,
+                chainType: identity.chainType.rawValue,
+                createdAt: identity.createdAt.timeIntervalSince1970,
+                isActive: false
+            ).insert(db)
+
+            for addr in identity.derivedAddresses {
+                try DerivedAddressRecord(
+                    walletId: identity.id.uuidString,
+                    chain: addr.chain.rawValue,
+                    path: addr.path,
+                    address: addr.address
+                ).insert(db)
+            }
+            
+            try WalletIdentityRecord
+                .updateAll(db, Column("isActive").set(to: false))
+            try WalletIdentityRecord
+                .filter(Column("id") == identity.id.uuidString)
                 .updateAll(db, Column("isActive").set(to: true))
         }
     }

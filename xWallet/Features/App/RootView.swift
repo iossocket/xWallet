@@ -13,14 +13,16 @@ struct RootView: View {
 
     var body: some View {
         root.task {
+            store.send(.activeIdentityCheck)
         }
     }
-    
     
     @ViewBuilder
     private var root: some View {
         switch store.launchPhase {
-        case .booting, .needsOnboarding:
+        case .splashScreen:
+            EmptyView()
+        case .needsOnboarding:
             ImportAccountView(
                 store: store.scope(state: \.account, action: \.account)
             )

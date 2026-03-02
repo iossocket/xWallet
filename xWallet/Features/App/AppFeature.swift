@@ -7,9 +7,10 @@
 
 import Foundation
 import ComposableArchitecture
+import EthereumKit
 
 enum LaunchPhase: Equatable {
-    case booting
+    case splashScreen
     case needsOnboarding
     case ready
 }
@@ -23,7 +24,7 @@ struct AppFeature {
     @ObservableState
     struct State: Equatable {
         var account = Account.State()
-        var launchPhase: LaunchPhase = .booting
+        var launchPhase: LaunchPhase = .splashScreen
         var selectedTab: Tab = .wallet
         var settings = Settings.State()
         var wallet = Wallet.State()
@@ -34,7 +35,11 @@ struct AppFeature {
         case settings(Settings.Action)
         case tabSelected(Tab)
         case wallet(Wallet.Action)
+        case activeIdentityCheck
+        case activeIdentityResponse(Result<WalletIdentity, Error>)
     }
+    
+    @Dependency(\.walletClient) var walletClient
     
     var body: some ReducerOf<Self> {
         Scope(state: \.account, action: \.account) {
@@ -46,22 +51,19 @@ struct AppFeature {
         Scope(state: \.wallet, action: \.wallet) {
             Wallet()
         }
-        Reduce { state, action in
+        Reduce { [walletClient] state, action in
             switch action {
             case .tabSelected(let tab):
                 state.selectedTab = tab
                 return .none
-
-            case .account(.createWalletResponse(.success(let identity))),
-                 .account(.importMnemonicResponse(.success(let identity))),
-                 .account(.importPrivateKeyResponse(.success(let identity))):
-                state.wallet.address = identity.primaryAddress
+            case .account(.createWalletResponse(.success)),
+                 .account(.importMnemonicResponse(.success)),
+                 .account(.importPrivateKeyResponse(.success)):
                 state.launchPhase = .ready
                 return .none
 
             case .account(.onAppear):
-                if let identity = state.account.activeIdentity {
-                    state.wallet.address = identity.primaryAddress
+                if let _ = state.account.activeIdentity {
                     state.launchPhase = .ready
                 }
                 return .none
@@ -71,7 +73,18 @@ struct AppFeature {
                     return .send(.wallet(.refreshButtonTapped))
                 }
                 return .none
-
+            case .activeIdentityCheck:
+                return .run { send in
+                    await send(.activeIdentityResponse(
+                        Result { try await walletClient.activeIdentity() }
+                    ))
+                }
+            case .activeIdentityResponse(.success):
+                state.launchPhase = .ready
+                return .none
+            case .activeIdentityResponse(.failure):
+                state.launchPhase = .needsOnboarding
+                return .none
             case .account, .settings, .wallet:
                 return .none
             }
