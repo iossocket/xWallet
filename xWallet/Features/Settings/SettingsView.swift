@@ -42,6 +42,9 @@ struct SettingsView: View {
         .onAppear {
             store.send(.onAppear)
         }
+        .onShake {
+            print("shaked")
+        }
     }
 
     private var header: some View {
