@@ -82,6 +82,17 @@ final class KeychainService {
             throw KeychainError.unexpectedStatus(status)
         }
     }
+    
+    func deleteAll() throws {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+        ]
+        let status = SecItemDelete(query as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else {
+            throw KeychainError.unexpectedStatus(status)
+        }
+    }
 }
 
 extension KeychainClient: DependencyKey {

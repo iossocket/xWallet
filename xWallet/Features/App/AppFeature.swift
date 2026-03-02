@@ -28,6 +28,7 @@ struct AppFeature {
         var selectedTab: Tab = .wallet
         var settings = Settings.State()
         var wallet = Wallet.State()
+        @Shared(.activeIdentity) var activeIdentity: WalletIdentity?
     }
     
     enum Action {
@@ -79,7 +80,8 @@ struct AppFeature {
                         Result { try await walletClient.activeIdentity() }
                     ))
                 }
-            case .activeIdentityResponse(.success):
+            case .activeIdentityResponse(.success(let identity)):
+                state.$activeIdentity.withLock { $0 = identity }
                 state.launchPhase = .ready
                 return .none
             case .activeIdentityResponse(.failure):
@@ -92,5 +94,17 @@ struct AppFeature {
         #if DEBUG
         ._printChanges()
         #endif
+    }
+}
+
+extension SharedKey where Self == InMemoryKey<EvmChain>.Default {
+    static var currentChain: Self {
+        Self[.inMemory("currentChain"), default: .sepolia]
+    }
+}
+
+extension SharedKey where Self == InMemoryKey<WalletIdentity?>.Default {
+    static var activeIdentity: Self {
+        Self[.inMemory("activeIdentity"), default: nil]
     }
 }

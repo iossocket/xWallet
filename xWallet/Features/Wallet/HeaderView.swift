@@ -5,11 +5,16 @@
 //  Created by Xueliang Zhu on 30/11/25.
 //
 import SwiftUI
+import EthereumKit
 
 struct HeaderView: View {
     @Binding var showBalance: Bool
     let totalBalance: String
-    
+    let currentChain: EvmChain
+    let onChainChanged: (EvmChain) -> Void
+
+    private let supportedChains: [EvmChain] = [.sepolia, .mainnet]
+
     var body: some View {
         HStack {
             // Left side user info
@@ -23,23 +28,23 @@ struct HeaderView: View {
                         .overlay(
                             Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
                         )
-                    
+
                     Image(systemName: "person.fill")
                         .foregroundStyle(.gray)
                 }
-                
+
                 VStack(alignment: .leading, spacing: 4) {
                     Text("TOTAL NET WORTH")
                         .font(.system(size: 10, weight: .bold))
                         .foregroundStyle(.gray)
                         .tracking(1)
-                    
+
                     HStack(spacing: 6) {
                         Text(showBalance ? "$\(totalBalance)" : "****")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
-                            .contentTransition(.numericText()) // Number scroll animation
-                        
+                            .contentTransition(.numericText())
+
                         Image(systemName: showBalance ? "chevron.down" : "eye.slash.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(.gray)
@@ -51,20 +56,40 @@ struct HeaderView: View {
                     }
                 }
             }
-            
+
             Spacer()
-            
-            // Right side settings button
-            Button(action: {}) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 18))
-                    .foregroundStyle(.gray)
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial) // Frosted glass
-                    .clipShape(Circle())
-                    .overlay(
-                        Circle().stroke(Color.white.opacity(0.1), lineWidth: 1)
-                    )
+
+            // Right side: chain selector
+            Menu {
+                ForEach(supportedChains, id: \.chainId) { chain in
+                    Button {
+                        onChainChanged(chain)
+                    } label: {
+                        HStack {
+                            Text(chain.name)
+                            if chain == currentChain {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(currentChain.isTestnet ? Color.yellow : Color.xAccent)
+                        .frame(width: 6, height: 6)
+                    Text(currentChain.name)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.white)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.gray)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 1))
             }
         }
     }

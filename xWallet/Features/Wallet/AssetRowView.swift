@@ -38,7 +38,7 @@ struct AssetRow: View {
             
             // Value
             VStack(alignment: .trailing, spacing: 4) {
-                Text(showBalance ? "$\(asset.value)" : "****")
+                Text(showBalance ? "\(asset.balance)" : "****")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                     .contentTransition(.numericText())

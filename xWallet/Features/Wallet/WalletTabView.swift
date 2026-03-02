@@ -24,7 +24,12 @@ struct WalletTabView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     // Header
-                    HeaderView(showBalance: showBalanceBinding, totalBalance: store.totalBalance)
+                    HeaderView(
+                        showBalance: showBalanceBinding,
+                        totalBalance: store.totalBalance,
+                        currentChain: store.currentChain,
+                        onChainChanged: { store.send(.chainChanged($0)) }
+                    )
                         .padding(.top, 60) // Adapt to notch area at top
                         .padding(.horizontal)
                     
