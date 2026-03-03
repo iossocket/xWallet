@@ -32,14 +32,12 @@ struct ERC20TokenList {
             name: "Chainlink Token"
         ),
 
-        // WETH — Uniswap v3 Sepolia canonical WETH
-        // https://docs.uniswap.org/contracts/v3/reference/deployments/ethereum-deployments
         ERC20Token(
             chainId: 11155111,
-            address: "0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14",
-            symbol: "WETH",
-            decimals: 18,
-            name: "Wrapped Ether"
+            address: "0x08210F9170F89Ab7658F0B5E3fF39b0E03C594D4",
+            symbol: "EURC",
+            decimals: 6,
+            name: "EURC"
         )
     ]
 

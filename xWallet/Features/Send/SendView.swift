@@ -27,16 +27,50 @@ struct SendView: View {
                 failureView(message: msg)
             }
         }
-        .navigationTitle("Send \(store.chain.symbol)")
+        .navigationTitle("Send \(store.selectedAsset?.symbol ?? store.chain.symbol)")
         .navigationBarTitleDisplayMode(.inline)
     }
 
     private var inputView: some View {
         VStack(spacing: 20) {
+            if !store.availableAssets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Asset").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    Menu {
+                        ForEach(store.availableAssets) { asset in
+                            Button {
+                                store.send(.assetSelected(asset))
+                            } label: {
+                                HStack {
+                                    Text(asset.symbol)
+                                    Spacer()
+                                    Text(asset.balance)
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            if let selected = store.selectedAsset {
+                                Text(selected.symbol).font(.body.bold())
+                                Spacer()
+                                Text(selected.balance).font(.caption).foregroundStyle(.white.opacity(0.6))
+                            } else {
+                                Text("Select asset").foregroundStyle(.white.opacity(0.6))
+                                Spacer()
+                            }
+                            Image(systemName: "chevron.down").font(.caption)
+                        }
+                        .foregroundStyle(.white)
+                        .padding()
+                        .background(.white.opacity(0.08))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("To address").font(.caption).foregroundStyle(.white.opacity(0.6))
                 TextField("0x...", text: $store.toAddress)
-                    .textFieldStyle(.plain)
                     .font(.system(.body, design: .monospaced))
                     .foregroundStyle(.white)
                     .padding()
@@ -44,12 +78,18 @@ struct SendView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
+                    .textContentType(.none)
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("amount (\(store.chain.symbol))").font(.caption).foregroundStyle(.white.opacity(0.6))
+                HStack {
+                    Text("Amount").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    Spacer()
+                    if let selected = store.selectedAsset {
+                        Text("Balance: \(selected.balance)").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    }
+                }
                 TextField("0.0", text: $store.amount)
-                    .textFieldStyle(.plain)
                     .font(.title2.bold())
                     .foregroundStyle(.white)
                     .keyboardType(.decimalPad)
@@ -76,12 +116,22 @@ struct SendView: View {
                     }
                 }
                 .frame(maxWidth: .infinity).padding()
-                .background(.white)
+                .background(canProceed ? .white : .white.opacity(0.3))
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .disabled(store.phase == .estimating)
+            .disabled(store.phase == .estimating || !canProceed)
         }
         .padding()
+    }
+
+    private var canProceed: Bool {
+        guard !store.toAddress.isEmpty, !store.amount.isEmpty else { return false }
+        guard let selected = store.selectedAsset else { return false }
+
+        let balanceStr = selected.balance.replacingOccurrences(of: " \(selected.symbol)", with: "").trimmingCharacters(in: .whitespaces)
+        guard let balance = Double(balanceStr), let amount = Double(store.amount) else { return false }
+
+        return amount > 0 && amount <= balance
     }
 
     private var confirmView: some View {
@@ -90,7 +140,7 @@ struct SendView: View {
 
             VStack(spacing: 12) {
                 feeRow("To Address", store.toAddress)
-                feeRow("Amount", "\(store.amount) \(store.chain.symbol)")
+                feeRow("Amount", "\(store.amount) \(store.selectedAsset?.symbol ?? store.chain.symbol)")
                 feeRow("Gas Limit", store.gasEstimate)
                 feeRow("Max Fee", store.maxFeePerGas)
                 feeRow("Priority Fee", store.maxPriorityFeePerGas)
@@ -154,7 +204,7 @@ struct SendView: View {
 
             if !isSuccess {
                 ProgressView().tint(.white)
-                Text("Mining...").font(.caption).foregroundStyle(.white.opacity(0.5))
+                Text("Confirming...").font(.caption).foregroundStyle(.white.opacity(0.5))
             }
         }
     }

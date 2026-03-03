@@ -88,7 +88,7 @@ struct Wallet {
                                 id: "ETH",
                                 symbol: "ETH",
                                 name: "Ethereum",
-                                balance: formatWei(ethWei, decimals: 18),
+                                balance: UnitFormatter.formatWei(ethWei, decimals: 18),
                                 value: "--",
                                 change: "--",
                                 icon: "diamond.fill",
@@ -103,7 +103,7 @@ struct Wallet {
                                 id: token.id,
                                 symbol: token.symbol,
                                 name: token.name,
-                                balance: formatWei(bal, decimals: token.decimals),
+                                balance: UnitFormatter.formatWei(bal, decimals: token.decimals),
                                 value: "--",
                                 change: "+0.00%",
                                 icon: iconName(for: token.symbol),
@@ -141,7 +141,12 @@ struct Wallet {
                 return .none
 
             case .sendButtonTapped:
-                state.send = Send.State(chain: state.currentChain)
+                let ethAsset = state.assets.first(where: { $0.id == "ETH" })
+                state.send = Send.State(
+                    chain: state.currentChain,
+                    availableAssets: state.assets,
+                    selectedAsset: ethAsset
+                )
                 return .none
 
             case .send:
@@ -157,17 +162,6 @@ struct Wallet {
 }
 
 // MARK: - Private helpers
-
-private func formatWei(_ wei: BigUInt, decimals: UInt8) -> String {
-    guard wei > 0 else { return "0" }
-    let divisor = BigUInt(10).power(Int(decimals))
-    let whole = wei / divisor
-    let remainder = wei % divisor
-    guard remainder > 0 else { return whole.description }
-    let padded = String(remainder).leftPadded(toLength: Int(decimals), with: "0")
-    let frac = String(padded.prefix(6).reversed().drop(while: { $0 == "0" }).reversed())
-    return frac.isEmpty ? whole.description : "\(whole).\(frac)"
-}
 
 private func iconName(for symbol: String) -> String {
     switch symbol.uppercased() {
@@ -188,9 +182,3 @@ private func iconColor(for symbol: String) -> Color {
     }
 }
 
-private extension String {
-    func leftPadded(toLength length: Int, with char: Character) -> String {
-        guard count < length else { return self }
-        return String(repeating: char, count: length - count) + self
-    }
-}
