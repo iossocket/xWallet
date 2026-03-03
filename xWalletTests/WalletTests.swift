@@ -8,14 +8,32 @@
 import ComposableArchitecture
 import Testing
 import BigInt
+import Foundation
 
 @testable import xWallet
 
 @MainActor
 struct WalletTests {
+
+    private static let testIdentity = WalletIdentity(
+        id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
+        name: "Test Wallet",
+        sourceType: .mnemonic,
+        chainType: .evm,
+        createdAt: Date(),
+        derivedAddresses: [
+            DerivedAddress(
+                chain: .evm,
+                path: "m/44'/60'/0'/0/0",
+                address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+            )
+        ]
+    )
+
     @Test
     func toggleShowBalance() async {
-        let store = TestStore(initialState: Wallet.State(showBalance: true)) {
+        let state = Wallet.State(showBalance: true)
+        let store = TestStore(initialState: state) {
             Wallet()
         }
 
@@ -26,24 +44,25 @@ struct WalletTests {
 
     @Test
     func receiveButtonPresentsSheet() async {
-        let store = TestStore(initialState: Wallet.State(address: "0xABC")) {
+        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+
+        let state = Wallet.State()
+        let store = TestStore(initialState: state) {
             Wallet()
         }
 
         await store.send(.receiveButtonTapped) {
-            $0.receive = Receive.State(address: "0xABC")
+            $0.receive = Receive.State(address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")
         }
     }
 
     @Test
     func refreshWithoutAddressDoesNothing() async {
-        let store = TestStore(initialState: Wallet.State(address: nil)) {
+        let state = Wallet.State()
+        let store = TestStore(initialState: state) {
             Wallet()
         }
-        await store.send(.refreshButtonTapped) {
-            $0.isLoading = true
-            $0.errorMessage = nil
-            $0.assets = AssetItem.preset
-        }
+
+        await store.send(.refreshButtonTapped)
     }
 }

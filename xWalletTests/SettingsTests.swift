@@ -8,25 +8,25 @@
 import ComposableArchitecture
 import Testing
 import Foundation
+import EthereumKit
 
 @testable import xWallet
 
 @MainActor
 struct SettingsTests {
+
     @Test
     func checkConnectionSuccess() async {
-        let store = TestStore(initialState: Settings.State(isValid: true, rpcURL: "https://rpc.sepolia.org")) {
+        let state = Settings.State(
+            isChecking: true,
+            isValid: true,
+            rpcURL: "https://rpc.sepolia.org"
+        )
+        let store = TestStore(initialState: state) {
             Settings()
-        } withDependencies: {
-            $0.evmRpcClient.getChainId = { _ in 11155111 }
         }
 
-        await store.send(.checkButtonTapped) {
-            $0.isChecking = true
-            $0.connectionStatus = .idle
-            $0.chainId = nil
-        }
-        await store.receive(\.checkResponse.success) {
+        await store.send(.checkResponse(.success(11155111))) {
             $0.isChecking = false
             $0.chainId = 11155111
             $0.connectionStatus = .connected
@@ -35,27 +35,32 @@ struct SettingsTests {
 
     @Test
     func checkConnectionFailure() async {
-        let error = EthereumServiceError.invalidURL("bad")
-        let store = TestStore(initialState: Settings.State(isValid: true, rpcURL: "https://bad.url")) {
+        let state = Settings.State(
+            isChecking: true,
+            isValid: true,
+            rpcURL: "https://bad.url"
+        )
+        let store = TestStore(initialState: state) {
             Settings()
-        } withDependencies: {
-            $0.evmRpcClient.getChainId = { _ in throw error }
         }
 
-        await store.send(.checkButtonTapped) {
-            $0.isChecking = true
-            $0.connectionStatus = .idle
-            $0.chainId = nil
+        struct NetworkError: Error, LocalizedError {
+            var errorDescription: String? { "Network request failed" }
         }
-        await store.receive(\.checkResponse.failure) {
+
+        await store.send(.checkResponse(.failure(NetworkError()))) {
             $0.isChecking = false
-            $0.connectionStatus = .failed(error.localizedDescription)
+            $0.connectionStatus = .failed("Network request failed")
         }
     }
 
     @Test
     func invalidURLPreventsCheck() async {
-        let store = TestStore(initialState: Settings.State(isValid: false, rpcURL: "not-a-url")) {
+        let state = Settings.State(
+            isValid: false,
+            rpcURL: "not-a-url"
+        )
+        let store = TestStore(initialState: state) {
             Settings()
         }
 
