@@ -28,6 +28,7 @@ struct WalletTabView: View {
                         showBalance: showBalanceBinding,
                         totalBalance: store.totalBalance,
                         currentChain: store.currentChain,
+                        supportedChains: store.supportedChains,
                         onChainChanged: { store.send(.chainChanged($0)) }
                     )
                         .padding(.top, 60) // Adapt to notch area at top
@@ -76,6 +77,7 @@ struct WalletTabView: View {
             }
         }
         .task {
+            store.send(.onAppear)
             store.send(.refreshButtonTapped)
         }
     }

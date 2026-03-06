@@ -26,7 +26,7 @@ struct WalletClient {
 
 extension WalletClient: DependencyKey {
     static var liveValue: WalletClient {
-        let storage = try! WalletStorage.makeDefault()
+        let storage = WalletStorage(dbQueue: LocalStorage.dbQueue)
         return WalletClient(
             createWallet: { name, chain in
                 let mnemonic = try BIP39.generateMnemonic()
@@ -230,38 +230,6 @@ private actor WalletStorage {
     init(dbQueue: DatabaseQueue) {
         self.dbQueue = dbQueue
     }
-
-    static func makeDefault() throws -> WalletStorage {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        let path = dir.appendingPathComponent("wallets.sqlite3").path
-        let dbQueue = try DatabaseQueue(path: path)
-        try Self.migrator.migrate(dbQueue)
-        return WalletStorage(dbQueue: dbQueue)
-    }
-    
-    private static var migrator: DatabaseMigrator {
-        var migrator = DatabaseMigrator()
-        migrator.registerMigration("v1") { db in
-            try db.create(table: "wallet_identity") { t in
-                t.column("id", .text).primaryKey()
-                t.column("name", .text).notNull()
-                t.column("sourceType", .text).notNull()
-                t.column("chainType", .text).notNull()
-                t.column("createdAt", .double).notNull()
-                t.column("isActive", .boolean).notNull().defaults(to: false)
-            }
-            try db.create(table: "derived_address") { t in
-                t.column("walletId", .text).notNull()
-                    .references("wallet_identity", onDelete: .cascade)
-                t.column("chain", .text).notNull()
-                t.column("path", .text).notNull().defaults(to: "")
-                t.column("address", .text).notNull()
-                t.primaryKey(["walletId", "chain", "path"])
-            }
-        }
-        return migrator
-    }
     
     func saveIdentity(_ identity: WalletIdentity) throws {
         try dbQueue.write { db in
@@ -426,4 +394,5 @@ enum WalletError: Error {
     case chainMismatch
     case encodingFailed
     case decodingFailed
+    case noActiveIdentity
 }

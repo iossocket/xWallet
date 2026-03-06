@@ -10,19 +10,19 @@ import Dependencies
 import EthereumKit
 
 struct EvmProviderClient {
-    var provider: @Sendable (EvmChain) -> EthereumProvider
+    var provider: @Sendable (EvmChainRecord) -> EthereumProvider
 }
 
 extension EvmProviderClient: DependencyKey {
     static var liveValue: EvmProviderClient {
         EvmProviderClient { chain in
-            EthereumProvider(chain: chain)
+            EthereumProvider(chain: chain.toChain())
         }
     }
 
     static var testValue: EvmProviderClient {
         EvmProviderClient { chain in
-            EthereumProvider(chain: chain)
+            EthereumProvider(chain: chain.toChain())
         }
     }
 }

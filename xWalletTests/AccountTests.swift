@@ -35,7 +35,7 @@ struct AccountTests {
         let store = TestStore(initialState: state) {
             Account()
         } withDependencies: {
-            $0.walletClient.createWallet = { _, _ in Self.testIdentity }
+            $0.walletClient.createWallet = { _, _ in await Self.testIdentity }
         }
 
         await store.send(.createWalletTapped) {
@@ -81,7 +81,7 @@ struct AccountTests {
         let store = TestStore(initialState: state) {
             Account()
         } withDependencies: {
-            $0.walletClient.importPrivateKey = { _, _, _ in Self.testIdentity }
+            $0.walletClient.importPrivateKey = { _, _, _ in await Self.testIdentity }
         }
 
         await store.send(.importPrivateKeyTapped) {
@@ -133,7 +133,7 @@ struct AccountTests {
         let store = TestStore(initialState: state) {
             Account()
         } withDependencies: {
-            $0.walletClient.importMnemonic = { _, _, _ in Self.testIdentity }
+            $0.walletClient.importMnemonic = { _, _, _ in await Self.testIdentity }
         }
 
         await store.send(.importMnemonicTapped) {

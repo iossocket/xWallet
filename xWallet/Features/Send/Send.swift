@@ -14,7 +14,7 @@ import BigInt
 struct Send {
     @ObservableState
     struct State: Equatable {
-        var chain: EvmChain
+        var chain: EvmChainRecord
         var availableAssets: IdentifiedArrayOf<AssetItem> = []
         var selectedAsset: AssetItem?
         var toAddress: String = ""
@@ -99,7 +99,7 @@ struct Send {
 
                 return .run { [walletClient] send in
                     do {
-                        let account = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain))
+                        let account = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain.toChain()))
 
                         let tx: EthereumTransaction
                         if let asset = selectedAsset, asset.id != "ETH" {
@@ -164,7 +164,7 @@ struct Send {
                 return .run { [walletClient, providerFactory = evmProvider.provider, preparedTx] send in
                     await send(.sendResponse(Result {
                         var transaction = preparedTx
-                        let account: EthereumSignableAccount = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain))
+                        let account: EthereumSignableAccount = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain.toChain()))
                         let provider = providerFactory(chain)
                         try account.sign(transaction: &transaction)
                         guard let raw = transaction.rawTransaction else {

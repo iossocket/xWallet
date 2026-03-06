@@ -10,10 +10,9 @@ import EthereumKit
 struct HeaderView: View {
     @Binding var showBalance: Bool
     let totalBalance: String
-    let currentChain: EvmChain
-    let onChainChanged: (EvmChain) -> Void
-
-    private let supportedChains: [EvmChain] = [.sepolia, .mainnet]
+    let currentChain: EvmChainRecord
+    let supportedChains: [EvmChainRecord]
+    let onChainChanged: (EvmChainRecord) -> Void
 
     var body: some View {
         HStack {
@@ -81,6 +80,7 @@ struct HeaderView: View {
                     Text(currentChain.name)
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white)
+                        .frame(minWidth: 120, alignment: .leading)
                     Image(systemName: "chevron.down")
                         .font(.system(size: 10))
                         .foregroundStyle(.gray)

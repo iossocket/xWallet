@@ -13,6 +13,7 @@ struct RootView: View {
 
     var body: some View {
         root.task {
+            store.send(.initializeChains)
             store.send(.activeIdentityCheck)
         }
     }

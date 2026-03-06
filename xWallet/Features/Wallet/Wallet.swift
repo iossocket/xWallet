@@ -17,7 +17,7 @@ struct Wallet {
     struct State: Equatable {
         @Presents var receive: Receive.State?
         @Presents var send: Send.State?
-        @Shared(.currentChain) var currentChain: EvmChain
+        @Shared(.currentChain) var currentChain: EvmChainRecord
         @Shared(.activeIdentity) var activeIdentity: WalletIdentity?
         var assets: IdentifiedArrayOf<AssetItem> = []
         var tokens: [ERC20Token] = []
@@ -26,29 +26,50 @@ struct Wallet {
         var isLoading = false
         var showBalance = true
         var totalBalance = "1,161,2.0"
+        var supportedChains: [EvmChainRecord] = []
     }
-    
+
     enum Action {
         case receive(PresentationAction<Receive.Action>)
         case send(PresentationAction<Send.Action>)
         case balanceResponse(Result<[AssetItem], Error>)
-        case chainChanged(EvmChain)
+        case chainChanged(EvmChainRecord)
+        case loadSupportedChainsResponse(Result<[EvmChainRecord], Error>)
+        case onAppear
         case refreshButtonTapped
         case receiveButtonTapped
         case setShowBalance(Bool)
         case sendButtonTapped
     }
-    
+
     enum CancelID {
         case balanceRequest
     }
-    
+
     @Dependency(\.evmProvider) var evmProvider
     @Dependency(\.erc20Client) var erc20Client
+    @Dependency(\.chainRegistry) var chainRegistry
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .onAppear:
+                return .run { send in
+                    await send(.loadSupportedChainsResponse(
+                        Result { try await chainRegistry.listEnabledChains() }
+                    ))
+                }
+
+            case .loadSupportedChainsResponse(.success(let chains)):
+                state.supportedChains = chains.isEmpty ? [EvmChain.sepolia, EvmChain.mainnet].map {
+                    $0.toRecord()
+                } : chains
+                return .none
+
+            case .loadSupportedChainsResponse(.failure):
+                state.supportedChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toRecord() }
+                return .none
+
             case .refreshButtonTapped:
                 guard let address = state.activeIdentity?.primaryAddress else { return .none }
                 state.isLoading = true
