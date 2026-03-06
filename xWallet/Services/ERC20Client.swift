@@ -65,20 +65,21 @@ struct ERC20Token: Equatable, Identifiable, Sendable {
 }
 
 struct ERC20Client {
-    var balanceOf: @Sendable (String, ERC20Token, EthereumProvider) async throws -> BigUInt
+    var balanceOf: @Sendable (String, ERC20Token, EvmChainRecord) async throws -> BigUInt
     var transfer: @Sendable (String, BigUInt, ERC20Token, EthereumSignableAccount) async throws -> String
-    var tokenInfo: @Sendable (String, EthereumProvider) async throws -> ERC20Token
+    var tokenInfo: @Sendable (String, EvmChainRecord) async throws -> ERC20Token
 }
 
 extension ERC20Client: DependencyKey {
     static var liveValue: ERC20Client {
         ERC20Client(
-            balanceOf: { ownerAddress, token, provider in
+            balanceOf: { ownerAddress, token, chain in
                 guard let contractAddr = EthereumAddress(token.address),
                       let owner = EthereumAddress(ownerAddress) else {
                     throw ERC20Error.invalidAddress
                 }
 
+                let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
                     abiJson: erc20ABI,
@@ -116,11 +117,11 @@ extension ERC20Client: DependencyKey {
                     account: account
                 )
             },
-            tokenInfo: { contractAddress, provider in
+            tokenInfo: { contractAddress, chain in
                 guard let contractAddr = EthereumAddress(contractAddress) else {
                     throw ERC20Error.invalidAddress
                 }
-
+                let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
                     abiJson: erc20ABI,
@@ -147,9 +148,9 @@ extension ERC20Client: DependencyKey {
         ERC20Client(
             balanceOf: { _, _, _ in BigUInt(1_000_000_000_000_000_000) }, // 1 token
             transfer: { _, _, _, _ in "0xdeadbeef" },
-            tokenInfo: { address, provider in
+            tokenInfo: { address, chain in
                 ERC20Token(
-                    chainId: provider.chain.chainId,
+                    chainId: chain.chainId,
                     address: address,
                     symbol: "TEST",
                     decimals: 18,

@@ -90,7 +90,7 @@ struct Wallet {
                             try await withThrowingTaskGroup(of: (ERC20Token, BigUInt).self) { group in
                                 for token in tokens {
                                     group.addTask {
-                                        let bal = try await erc20.balanceOf(address, token, provider)
+                                        let bal = try await erc20.balanceOf(address, token, chain)
                                         return (token, bal)
                                     }
                                 }

@@ -20,8 +20,6 @@ struct Settings {
         case chainManagement(PresentationAction<ChainManagement.Action>)
         case manageChainsTapped
     }
-
-    @Dependency(\.evmProvider) var evmProvider
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
