@@ -8,11 +8,11 @@ import SwiftUI
 
 struct AuroraBackground: View {
     var body: some View {
-        Color(hex: "050505")
+        Color.xBg0
             .overlay {
                 ZStack {
                     Circle()
-                        .fill(Color.blue.opacity(0.25))
+                        .fill(Color.xAccent.opacity(0.25))
                         .frame(width: 500, height: 500)
                         .blur(radius: 120)
                         .offset(x: -100, y: -250)

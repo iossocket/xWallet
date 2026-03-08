@@ -54,7 +54,6 @@ private let erc20ABI = """
 ]
 """
 
-// ERC-20 代币元数据（绑定到具体链）
 struct ERC20Token: Equatable, Identifiable, Sendable {
     let chainId: UInt64
     let address: String

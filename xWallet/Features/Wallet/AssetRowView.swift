@@ -38,14 +38,14 @@ struct AssetRow: View {
             
             // Value
             VStack(alignment: .trailing, spacing: 4) {
-                Text(showBalance ? "\(asset.balance)" : "****")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                Text(showBalance ? asset.value : "****")
+                    .font(Font.xTitle3)
+                    .foregroundStyle(Color.xTextPrimary)
                     .contentTransition(.numericText())
-                
-                Text(asset.change)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(asset.change.hasPrefix("+") ? .green : .red)
+
+                Text(showBalance ? asset.balance : "****")
+                    .font(Font.xCaption)
+                    .foregroundStyle(Color.xTextSecondary)
             }
         }
         .padding(16)

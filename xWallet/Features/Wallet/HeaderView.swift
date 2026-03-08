@@ -9,7 +9,7 @@ import EthereumKit
 
 struct HeaderView: View {
     @Binding var showBalance: Bool
-    let totalBalance: String
+    let totalBalance: String?
     let currentChain: EvmChainRecord
     let supportedChains: [EvmChainRecord]
     let onChainChanged: (EvmChainRecord) -> Void
@@ -39,7 +39,7 @@ struct HeaderView: View {
                         .tracking(1)
 
                     HStack(spacing: 6) {
-                        Text(showBalance ? "$\(totalBalance)" : "****")
+                        Text(showBalance ? "$\(totalBalance ?? "--")" : "****")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundStyle(.white)
                             .contentTransition(.numericText())

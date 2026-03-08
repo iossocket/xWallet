@@ -26,7 +26,7 @@ struct WalletTabView: View {
                     // Header
                     HeaderView(
                         showBalance: showBalanceBinding,
-                        totalBalance: store.totalBalance,
+                        totalBalance: store.totalUsdValue,
                         currentChain: store.currentChain,
                         supportedChains: store.supportedChains,
                         onChainChanged: { store.send(.chainChanged($0)) }
@@ -35,7 +35,12 @@ struct WalletTabView: View {
                         .padding(.horizontal)
                     
                     // Dashboard ring (Dashboard Core)
-                    DashboardRingView(showBalance: store.showBalance)
+                    DashboardRingView(
+                        showBalance: store.showBalance,
+                        currentChainName: store.currentChain.name,
+                        totalUsdValue: store.totalUsdValue,
+                        currentChainUsdValue: store.currentChainUsdValue
+                    )
                         .padding(.top, 20)
                         .zIndex(1) // Ensure layer is above elements below
                     
@@ -78,7 +83,6 @@ struct WalletTabView: View {
         }
         .task {
             store.send(.onAppear)
-            store.send(.refreshButtonTapped)
         }
     }
 }
