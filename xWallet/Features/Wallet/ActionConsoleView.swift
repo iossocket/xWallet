@@ -9,6 +9,7 @@ import SwiftUI
 struct ActionConsoleView: View {
     var sendButtonTapped: () -> Void
     var receiveButtonTapped: () -> Void
+    var historyButtonTapped: () -> Void
 
     var body: some View {
         HStack(spacing: 0) {
@@ -18,7 +19,9 @@ struct ActionConsoleView: View {
             ActionButton(icon: "arrow.down.left", label: "Receive", isActive: true) {
                 receiveButtonTapped()
             }
-            ActionButton(icon: "arrow.triangle.2.circlepath", label: "Swap")
+            ActionButton(icon: "clock.arrow.circlepath", label: "History", isActive: true) {
+                historyButtonTapped()
+            }
             ActionButton(icon: "plus", label: "Buy")
         }
         .padding(12)

@@ -20,6 +20,7 @@ enum ViewMode: Equatable {
 struct Wallet {
     @ObservableState
     struct State: Equatable {
+        @Presents var history: History.State?
         @Presents var receive: Receive.State?
         @Presents var send: Send.State?
         @Shared(.currentChain) var currentChain: EvmChainRecord
@@ -41,6 +42,8 @@ struct Wallet {
         case chainChanged(EvmChainRecord)
         case fetchAllBalances
         case fetchPrices
+        case history(PresentationAction<History.Action>)
+        case historyButtonTapped
         case loadSupportedChainsResponse(Result<[EvmChainRecord], Error>)
         case onAppear
         case pricesResponse(Result<[String: Double], Error>)
@@ -205,6 +208,16 @@ struct Wallet {
                 )
                 return .none
 
+            case .history:
+                return .none
+
+            case .historyButtonTapped:
+                state.history = History.State(
+                    address: state.activeIdentity?.primaryAddress,
+                    chain: state.currentChain
+                )
+                return .none
+
             case .send:
                 return .none
 
@@ -220,6 +233,7 @@ struct Wallet {
                 return .none
             }
         }
+        .ifLet(\.$history, action: \.history) { History() }
         .ifLet(\.$receive, action: \.receive) { Receive() }
         .ifLet(\.$send, action: \.send) { Send() }
     }
