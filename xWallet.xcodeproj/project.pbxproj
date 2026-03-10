@@ -32,6 +32,23 @@
 		5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = xWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5AFE98D62F605DF000A6E68F /* Exceptions for "xWalletTests" folder in "xWallet" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Paginator/Mock.swift,
+			);
+			target = 5A54CB242ED3219E005AF084 /* xWallet */;
+		};
+		5AFE98D72F605DF000A6E68F /* Exceptions for "xWalletTests" folder in "xWalletTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Paginator/Mock.swift,
+			);
+			target = 5AB3E6062F4C450A00B70BC6 /* xWalletTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5A54CB272ED3219E005AF084 /* xWallet */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -40,6 +57,10 @@
 		};
 		5AB3E6082F4C450A00B70BC6 /* xWalletTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5AFE98D62F605DF000A6E68F /* Exceptions for "xWalletTests" folder in "xWallet" target */,
+				5AFE98D72F605DF000A6E68F /* Exceptions for "xWalletTests" folder in "xWalletTests" target */,
+			);
 			path = xWalletTests;
 			sourceTree = "<group>";
 		};
