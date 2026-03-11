@@ -8,7 +8,7 @@
 import Foundation
 @testable import xWallet
 
-public struct MockItem: Sendable, Equatable {
+public struct MockItem: Sendable, Equatable, Codable {
     public let id: Int
     public let title: String
 
@@ -55,5 +55,31 @@ struct ImmediateValidator<Item: Sendable>: PageValidator {
 struct AlwaysInvalidValidator<Item: Sendable>: PageValidator {
     func isValid(_ page: PaginatorPage<Item>) -> Bool {
         false
+    }
+}
+
+actor MockStore: PaginatorStore {
+    typealias Item = MockItem
+
+    private var storage: [String: PaginatorPage<MockItem>] = [:]
+    private(set) var loadCallCount = 0
+    private(set) var saveCallCount = 0
+
+    func load(key: String?) -> PaginatorPage<MockItem>? {
+        loadCallCount += 1
+        return storage[key ?? ""]
+    }
+
+    func save(key: String?, page: PaginatorPage<MockItem>) {
+        saveCallCount += 1
+        storage[key ?? ""] = page
+    }
+
+    func remove(key: String?) {
+        storage.removeValue(forKey: key ?? "")
+    }
+
+    func removeAll() {
+        storage.removeAll()
     }
 }

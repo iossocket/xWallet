@@ -28,3 +28,5 @@ public final class PaginatorPage<Item: Sendable>: Sendable {
         self.nextKey = nextKey
     }
 }
+
+extension PaginatorPage: Codable where Item: Codable {}

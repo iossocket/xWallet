@@ -5,24 +5,24 @@
 //  Created by Xueliang Zhu on 10/3/26.
 //
 
-public actor PaginatorInMemoryCache<Item: Sendable> {
+public actor PaginatorInMemoryCache<Item: Sendable>: PaginatorCache {
     private var storage: [InternalPageKey: PaginatorPageResult<Item>] = [:]
 
     public init() {}
 
-    func value(for key: InternalPageKey) -> PaginatorPageResult<Item>? {
-        storage[key]
+    public func value(for key: String?) -> PaginatorPageResult<Item>? {
+        storage[InternalPageKey(key)]
     }
 
-    func set(_ value: PaginatorPageResult<Item>, for key: InternalPageKey) {
-        storage[key] = value
+    public func set(_ value: PaginatorPageResult<Item>, for key: String?) {
+        storage[InternalPageKey(key)] = value
     }
 
-    func remove(for key: InternalPageKey) {
-        storage.removeValue(forKey: key)
+    public func remove(for key: String?) {
+        storage.removeValue(forKey: InternalPageKey(key))
     }
 
-    func removeAll() {
+    public func removeAll() {
         storage.removeAll()
     }
 }

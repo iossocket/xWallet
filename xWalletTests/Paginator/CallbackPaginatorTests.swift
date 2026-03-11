@@ -15,7 +15,8 @@ class CallbackPaginatorTests: XCTestCase {
         let dataSource = MockDataSource()
         let paginator = CallbackPaginator(
             dataSource: dataSource,
-            validator: ImmediateValidator<MockItem>()
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache()
         )
 
         let page = try await fetchPage(from: paginator, key: nil, pageSize: 3)
@@ -24,12 +25,13 @@ class CallbackPaginatorTests: XCTestCase {
         XCTAssertEqual(page.content[0], MockItem(id: 0, title: "Item 0"))
         XCTAssertEqual(dataSource.fetchCallCount, 1)
     }
-    
+
     func testFetchSameKeyHitsMemoryCache() async throws {
         let dataSource = MockDataSource()
         let paginator = CallbackPaginator(
             dataSource: dataSource,
-            validator: ImmediateValidator<MockItem>()
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache()
         )
 
         _ = try await fetchPage(from: paginator, key: "0", pageSize: 3)
@@ -42,7 +44,8 @@ class CallbackPaginatorTests: XCTestCase {
         let dataSource = MockDataSource()
         let paginator = CallbackPaginator(
             dataSource: dataSource,
-            validator: ImmediateValidator<MockItem>()
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache()
         )
 
         _ = try await fetchPage(from: paginator, key: "0", pageSize: 3)
@@ -56,7 +59,8 @@ class CallbackPaginatorTests: XCTestCase {
         let dataSource = MockDataSource()
         let paginator = CallbackPaginator(
             dataSource: dataSource,
-            validator: AlwaysInvalidValidator<MockItem>()
+            validator: AlwaysInvalidValidator<MockItem>(),
+            cache: PaginatorInMemoryCache()
         )
 
         do {
@@ -67,6 +71,72 @@ class CallbackPaginatorTests: XCTestCase {
         } catch {
             XCTFail("Unexpected error: \(error)")
         }
+    }
+
+    // MARK: - Store Tests
+
+    func testFetchHitsStoreWhenCacheMisses() async throws {
+        let dataSource = MockDataSource()
+        let store = MockStore()
+
+        // Pre-populate store
+        let storedPage = PaginatorPage(
+            content: [MockItem(id: 99, title: "Stored")],
+            key: "0",
+            expirationTime: Date().addingTimeInterval(60)
+        )
+        await store.save(key: "0", page: storedPage)
+
+        let paginator = CallbackPaginator(
+            dataSource: dataSource,
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache(),
+            store: store
+        )
+
+        let page = try await fetchPage(from: paginator, key: "0", pageSize: 3)
+
+        XCTAssertEqual(page.content, [MockItem(id: 99, title: "Stored")])
+        XCTAssertEqual(dataSource.fetchCallCount, 0)
+    }
+
+    func testFetchFallsToDataSourceWhenStoreMisses() async throws {
+        let dataSource = MockDataSource()
+        let store = MockStore()
+
+        let paginator = CallbackPaginator(
+            dataSource: dataSource,
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache(),
+            store: store
+        )
+
+        let page = try await fetchPage(from: paginator, key: "0", pageSize: 3)
+
+        XCTAssertEqual(page.content.count, 3)
+        XCTAssertEqual(dataSource.fetchCallCount, 1)
+        // DataSource result should be written back to store
+        let saveCount = await store.saveCallCount
+        XCTAssertEqual(saveCount, 1)
+    }
+
+    func testClearRemovesBothCacheAndStore() async throws {
+        let dataSource = MockDataSource()
+        let store = MockStore()
+
+        let paginator = CallbackPaginator(
+            dataSource: dataSource,
+            validator: ImmediateValidator<MockItem>(),
+            cache: PaginatorInMemoryCache(),
+            store: store
+        )
+
+        _ = try await fetchPage(from: paginator, key: "0", pageSize: 3)
+        await paginator.clear(key: "0")
+
+        // Store should have no data for this key after clear
+        let loaded = await store.load(key: "0")
+        XCTAssertNil(loaded)
     }
 }
 
