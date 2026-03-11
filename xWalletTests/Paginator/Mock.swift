@@ -6,8 +6,9 @@
 //
 
 import Foundation
+@testable import xWallet
 
-public struct MockItem: Sendable {
+public struct MockItem: Sendable, Equatable {
     public let id: Int
     public let title: String
 
@@ -17,13 +18,17 @@ public struct MockItem: Sendable {
     }
 }
 
-public struct MockDataSource: PaginatorDataSource {
+final class MockDataSource: PaginatorDataSource, @unchecked Sendable {
     public init() {}
+    
+    private(set) var fetchCallCount = 0
 
     public func fetchPage(
         key: String?,
         pageSize: Int
     ) async throws -> PaginatorPage<MockItem> {
+        self.fetchCallCount += 1
+        
         let pageIndex = Int(key ?? "0") ?? 0
         let start = pageIndex * pageSize
 
@@ -38,5 +43,17 @@ public struct MockDataSource: PaginatorDataSource {
             prevKey: pageIndex > 0 ? "\(pageIndex - 1)" : nil,
             nextKey: "\(pageIndex + 1)"
         )
+    }
+}
+
+struct ImmediateValidator<Item: Sendable>: PageValidator {
+    func isValid(_ page: PaginatorPage<Item>) -> Bool {
+        true
+    }
+}
+
+struct AlwaysInvalidValidator<Item: Sendable>: PageValidator {
+    func isValid(_ page: PaginatorPage<Item>) -> Bool {
+        false
     }
 }

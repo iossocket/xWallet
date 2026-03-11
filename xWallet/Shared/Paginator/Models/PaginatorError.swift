@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum PaginatorError: Error, Sendable {
+public enum PaginatorError: Error, Sendable, Equatable {
     case invalidKey
     case cancelled
     case network(String)
