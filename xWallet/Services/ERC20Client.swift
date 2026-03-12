@@ -11,7 +11,8 @@ import MultiChainKit
 import BigInt
 import Dependencies
 
-private let erc20ABI = """
+enum ERC20ABI {
+    static let json = """
 [
   {
     "constant": true,
@@ -53,12 +54,13 @@ private let erc20ABI = """
   }
 ]
 """
+}
 
 struct ERC20Token: Equatable, Identifiable, Sendable {
     let chainId: UInt64
     let address: String
     let symbol: String
-    let decimals: UInt8
+    let decimals: Int
     let name: String
     var id: String { "\(chainId):\(address.lowercased())" }
 }
@@ -81,7 +83,7 @@ extension ERC20Client: DependencyKey {
                 let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: erc20ABI,
+                    abiJson: ERC20ABI.json,
                     provider: provider
                 )
 
@@ -103,7 +105,7 @@ extension ERC20Client: DependencyKey {
 
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: erc20ABI,
+                    abiJson: ERC20ABI.json,
                     provider: provider
                 )
 
@@ -123,7 +125,7 @@ extension ERC20Client: DependencyKey {
                 let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: erc20ABI,
+                    abiJson: ERC20ABI.json,
                     provider: provider
                 )
                 
@@ -136,7 +138,7 @@ extension ERC20Client: DependencyKey {
                     chainId: provider.chain.chainId,
                     address: contractAddress,
                     symbol: s,
-                    decimals: d,
+                    decimals: Int(d),
                     name: n
                 )
             }

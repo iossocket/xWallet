@@ -8,6 +8,11 @@
 import GRDB
 import Foundation
 
+@globalActor
+actor DatabaseActor: GlobalActor {
+    static let shared = DatabaseActor()
+}
+
 enum LocalStorage {
     static let dbQueue: DatabaseQueue = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -49,6 +54,30 @@ enum LocalStorage {
                 t.column("decimals", .integer).notNull()
                 t.column("explorerURL", .text)
                 t.column("enabled", .boolean).notNull().defaults(to: true)
+            }
+        }
+        migrator.registerMigration("v3") { db in
+            try db.create(table: "chains") { t in
+                t.column("id", .text).primaryKey()
+                t.column("chainId", .text).notNull()
+                t.column("name", .text).notNull()
+                t.column("rpcURL", .text).notNull()
+                t.column("isTestnet", .boolean).notNull()
+                t.column("symbol", .text).notNull()
+                t.column("decimals", .integer).notNull()
+                t.column("explorerURL", .text)
+                t.column("enabled", .boolean).notNull().defaults(to: true)
+            }
+            try db.create(table: "erc20_tokens") { t in
+                t.column("id", .text).primaryKey()
+                t.column("chainId", .text).notNull()
+                t.column("name", .text).notNull()
+                t.column("symbol", .text).notNull()
+                t.column("decimals", .integer).notNull()
+                t.column("contractAddress", .text).notNull()
+                t.column("chainFK", .text)
+                    .notNull()
+                    .references("chains", onDelete: .cascade)
             }
         }
         return migrator

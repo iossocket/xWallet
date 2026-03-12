@@ -6,29 +6,29 @@
 //
 
 import BigInt
-import EthereumKit
 
 struct ChainBalance: Equatable, Identifiable, Sendable {
-    let chainId: UInt64
+    let chainId: String           // "1", "11155111", "starknet", etc.
+    let chainType: ChainType
     let chainName: String
     let symbol: String
     let decimals: Int
     let nativeBalance: BigUInt
     let tokens: [TokenBalance]
 
-    var id: UInt64 { chainId }
+    var id: String { chainId }
 
     var nativeFormatted: String {
-        UnitFormatter.formatWei(nativeBalance, decimals: UInt8(decimals))
+        UnitFormatter.formatWei(nativeBalance, decimals: decimals)
     }
 }
 
 struct TokenBalance: Equatable, Identifiable, Sendable {
-    let chainId: UInt64
+    let chainId: String
     let contractAddress: String
     let symbol: String
     let name: String
-    let decimals: UInt8
+    let decimals: Int
     let rawBalance: BigUInt
 
     var id: String { "\(chainId):\(contractAddress.lowercased())" }

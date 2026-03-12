@@ -207,7 +207,7 @@ func blockscoutDomain(forChainId chainId: UInt64) -> String? {
 
 private func formatWei(_ weiStr: String, decimals: Int, symbol: String) -> String {
     guard let wei = BigUInt(weiStr), wei > 0 else { return "0 \(symbol)" }
-    let formatted = UnitFormatter.formatWei(wei, decimals: UInt8(decimals))
+    let formatted = UnitFormatter.formatWei(wei, decimals: decimals)
     return "\(formatted) \(symbol)"
 }
 

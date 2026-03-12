@@ -10,7 +10,6 @@ import Testing
 import BigInt
 import EthereumKit
 import Foundation
-import MultiChainCore
 import SwiftUI
 
 @testable import xWallet
@@ -85,10 +84,13 @@ struct WalletTests {
             Wallet()
         } withDependencies: {
             $0.chainRegistry.listEnabledChains = { [sepoliaRecord] }
-            $0.evmProvider.provider = { _ in
-                BalanceReturningMockProvider(chainId: 11155111, hexBalance: "0xde0b6b3a7640000")
+            $0.balanceFetcher.fetchBalances = { _, _ in
+                [ChainBalance(
+                    chainId: "11155111", chainType: .evm, chainName: "Sepolia",
+                    symbol: "ETH", decimals: 18,
+                    nativeBalance: BigUInt("1000000000000000000"), tokens: []
+                )]
             }
-            $0.erc20Client.balanceOf = { _, _, _ in BigUInt(0) }
             $0.priceClient.fetchPrices = { _, symbols in
                 Dictionary(uniqueKeysWithValues: symbols.map { ($0, 2000.0) })
             }
@@ -110,7 +112,8 @@ struct WalletTests {
             $0.isLoadingAllChains = false
             $0.chainBalances = [
                 ChainBalance(
-                    chainId: 11155111,
+                    chainId: "11155111",
+                    chainType: .evm,
                     chainName: "Sepolia",
                     symbol: "ETH",
                     decimals: 18,
@@ -146,10 +149,18 @@ struct WalletTests {
             Wallet()
         } withDependencies: {
             $0.chainRegistry.listEnabledChains = { throw NSError(domain: "test", code: 1) }
-            $0.evmProvider.provider = { _ in
-                BalanceReturningMockProvider(chainId: 11155111, hexBalance: "0x0")
+            $0.balanceFetcher.fetchBalances = { _, _ in
+                [
+                    ChainBalance(
+                        chainId: "11155111", chainType: .evm, chainName: "Sepolia",
+                        symbol: "ETH", decimals: 18, nativeBalance: BigUInt(0), tokens: []
+                    ),
+                    ChainBalance(
+                        chainId: "1", chainType: .evm, chainName: "Ethereum Mainnet",
+                        symbol: "ETH", decimals: 18, nativeBalance: BigUInt(0), tokens: []
+                    ),
+                ]
             }
-            $0.erc20Client.balanceOf = { _, _, _ in BigUInt(0) }
             $0.priceClient.fetchPrices = { _, symbols in
                 Dictionary(uniqueKeysWithValues: symbols.map { ($0, 0.0) })
             }
@@ -171,7 +182,8 @@ struct WalletTests {
             $0.isLoadingAllChains = false
             $0.chainBalances = [
                 ChainBalance(
-                    chainId: 11155111,
+                    chainId: "11155111",
+                    chainType: .evm,
                     chainName: "Sepolia",
                     symbol: "ETH",
                     decimals: 18,
@@ -179,7 +191,8 @@ struct WalletTests {
                     tokens: []
                 ),
                 ChainBalance(
-                    chainId: 1,
+                    chainId: "1",
+                    chainType: .evm,
                     chainName: "Ethereum Mainnet",
                     symbol: "ETH",
                     decimals: 18,
@@ -237,10 +250,13 @@ struct WalletTests {
         let store = TestStore(initialState: state) {
             Wallet()
         } withDependencies: {
-            $0.evmProvider.provider = { _ in
-                BalanceReturningMockProvider(chainId: 11155111, hexBalance: "0xde0b6b3a7640000")
+            $0.balanceFetcher.fetchBalances = { _, _ in
+                [ChainBalance(
+                    chainId: "11155111", chainType: .evm, chainName: "Sepolia",
+                    symbol: "ETH", decimals: 18,
+                    nativeBalance: BigUInt("1000000000000000000"), tokens: []
+                )]
             }
-            $0.erc20Client.balanceOf = { _, _, _ in BigUInt(0) }
             $0.priceClient.fetchPrices = { _, symbols in
                 Dictionary(uniqueKeysWithValues: symbols.map { ($0, 2000.0) })
             }
@@ -258,7 +274,8 @@ struct WalletTests {
             $0.isLoadingAllChains = false
             $0.chainBalances = [
                 ChainBalance(
-                    chainId: 11155111,
+                    chainId: "11155111",
+                    chainType: .evm,
                     chainName: "Sepolia",
                     symbol: "ETH",
                     decimals: 18,
@@ -300,11 +317,11 @@ struct WalletTests {
         @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
 
         let sepoliaBalance = ChainBalance(
-            chainId: 11155111, chainName: "Sepolia", symbol: "ETH",
+            chainId: "11155111", chainType: .evm, chainName: "Sepolia", symbol: "ETH",
             decimals: 18, nativeBalance: BigUInt("1000000000000000000"), tokens: []
         )
         let mainnetBalance = ChainBalance(
-            chainId: 1, chainName: "Ethereum Mainnet", symbol: "ETH",
+            chainId: "1", chainType: .evm, chainName: "Ethereum Mainnet", symbol: "ETH",
             decimals: 18, nativeBalance: BigUInt("2000000000000000000"), tokens: []
         )
 
@@ -353,14 +370,15 @@ struct WalletTests {
         var state = Wallet.State()
         state.chainBalances = [
             ChainBalance(
-                chainId: 11155111,
+                chainId: "11155111",
+                chainType: .evm,
                 chainName: "Sepolia",
                 symbol: "ETH",
                 decimals: 18,
                 nativeBalance: BigUInt("1500000000000000000"),
                 tokens: [
                     TokenBalance(
-                        chainId: 11155111,
+                        chainId: "11155111",
                         contractAddress: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
                         symbol: "USDC",
                         name: "USD Coin",
@@ -403,35 +421,5 @@ struct WalletTests {
         }
 
         await store.send(.pricesResponse(.failure(PriceError.httpError)))
-    }
-}
-
-// MARK: - Test Helpers
-
-private struct BalanceReturningMockProvider: EvmProviderProtocol {
-    let chainId: UInt64
-    let hexBalance: String
-
-    func send<R: Decodable>(request: ChainRequest) async throws -> R {
-        guard let result = hexBalance as? R else {
-            throw MockEvmProviderError.notOverridden
-        }
-        return result
-    }
-
-    func getBalanceRequest(address: EthereumAddress, block: BlockTag) -> ChainRequest {
-        ChainRequest(method: "eth_getBalance", params: [])
-    }
-
-    func sendRawTransactionRequest(_ raw: String) -> ChainRequest {
-        ChainRequest(method: "eth_sendRawTransaction", params: [])
-    }
-
-    func chainIdRequest() -> ChainRequest {
-        ChainRequest(method: "eth_chainId", params: [])
-    }
-
-    func waitForTransaction(hash: String) async throws -> EthereumReceipt {
-        throw MockEvmProviderError.notOverridden
     }
 }

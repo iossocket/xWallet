@@ -7,7 +7,6 @@
 
 import Foundation
 import Security
-import Dependencies
 
 enum KeychainError: Error, LocalizedError, Equatable {
     case unexpectedStatus(OSStatus)
@@ -21,13 +20,15 @@ enum KeychainError: Error, LocalizedError, Equatable {
     }
 }
 
-struct KeychainClient {
-    var saveData: @Sendable (Data, String) throws -> Void
-    var loadData: @Sendable (String) throws -> Data
-    var delete: @Sendable (String) throws -> Void
+protocol SecurityStore {
+    func saveData(_ data: Data, account: String) throws
+    func loadData(account: String) throws -> Data
+    func delete(account: String) throws
+    func deleteAll() throws
 }
 
-final class KeychainService {
+
+struct KeychainService: SecurityStore {
     private let service: String
 
     init(service: String = Bundle.main.bundleIdentifier ?? "xWallet") {
@@ -94,39 +95,3 @@ final class KeychainService {
         }
     }
 }
-
-extension KeychainClient: DependencyKey {
-    static var liveValue: KeychainClient {
-        let service = KeychainService()
-        return KeychainClient(
-            saveData: { data, account in try service.saveData(data, account: account) },
-            loadData: { account in try service.loadData(account: account) },
-            delete: { account in try service.delete(account: account) }
-        )
-    }
-
-    static var testValue: KeychainClient {
-        KeychainClient(
-            saveData: { _, _ in },
-            loadData: { _ in throw KeychainError.itemNotFound },
-            delete: { _ in }
-        )
-    }
-
-    static var previewValue: KeychainClient {
-        KeychainClient(
-            saveData: { _, _ in },
-            loadData: { _ in throw KeychainError.itemNotFound },
-            delete: { _ in }
-        )
-    }
-}
-
-
-extension DependencyValues {
-    var keychain: KeychainClient {
-        get { self[KeychainClient.self] }
-        set { self[KeychainClient.self] = newValue }
-    }
-}
-

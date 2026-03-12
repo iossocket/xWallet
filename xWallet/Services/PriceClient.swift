@@ -13,12 +13,12 @@ import Foundation
 protocol PriceIdResolver: Sendable {
     /// Resolve a symbol on a given chain to an external price ID.
     /// Returns symbol → priceId mapping for all resolvable symbols.
-    func resolve(chainId: UInt64, symbols: [String]) async -> [String: String]
+    func resolve(chainId: String, symbols: [String]) async -> [String: String]
 }
 
 /// Static resolver using hardcoded mappings. Async interface for future extensibility.
 struct StaticPriceIdResolver: PriceIdResolver {
-    func resolve(chainId: UInt64, symbols: [String]) async -> [String: String] {
+    func resolve(chainId: String, symbols: [String]) async -> [String: String] {
         var mapped: [String: String] = [:]
         for symbol in symbols {
             if isNativeSymbol(symbol, chainId: chainId) {
@@ -30,12 +30,13 @@ struct StaticPriceIdResolver: PriceIdResolver {
         return mapped
     }
 
-    private func nativePriceId(for chainId: UInt64) -> String {
+    private func nativePriceId(for chainId: String) -> String {
         switch chainId {
-        case 1, 11_155_111, 8453, 42161, 10: return "ethereum"
-        case 137:   return "matic-network"
-        case 56:    return "binancecoin"
-        default:    return "ethereum"
+        case "1", "11155111", "8453", "42161", "10": return "ethereum"
+        case "137":        return "matic-network"
+        case "56":         return "binancecoin"
+        case "starknet":   return "starknet"   // Starknet 原生代币是 STRK
+        default:           return "ethereum"
         }
     }
 
@@ -48,15 +49,17 @@ struct StaticPriceIdResolver: PriceIdResolver {
         case "WETH":         return "weth"
         case "WBTC":         return "wrapped-bitcoin"
         case "ARB":          return "arbitrum"
+        case "STRK":         return "starknet"
         default:             return nil
         }
     }
 
-    private func isNativeSymbol(_ symbol: String, chainId: UInt64) -> Bool {
+    private func isNativeSymbol(_ symbol: String, chainId: String) -> Bool {
         switch chainId {
-        case 137:   return symbol.uppercased() == "MATIC"
-        case 56:    return symbol.uppercased() == "BNB"
-        default:    return symbol.uppercased() == "ETH"
+        case "137":       return symbol.uppercased() == "MATIC"
+        case "56":        return symbol.uppercased() == "BNB"
+        case "starknet":  return symbol.uppercased() == "STRK"
+        default:          return symbol.uppercased() == "ETH"
         }
     }
 }
@@ -64,7 +67,7 @@ struct StaticPriceIdResolver: PriceIdResolver {
 // MARK: - Provider Protocol
 
 protocol PriceProvider: Sendable {
-    func fetchPrices(chainId: UInt64, symbols: [String]) async throws -> [String: Double]
+    func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double]
 }
 
 // MARK: - CoinGecko Provider
@@ -72,7 +75,7 @@ protocol PriceProvider: Sendable {
 struct CoinGeckoPriceProvider: PriceProvider {
     let resolver: PriceIdResolver
 
-    func fetchPrices(chainId: UInt64, symbols: [String]) async throws -> [String: Double] {
+    func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {
         let mapped = await resolver.resolve(chainId: chainId, symbols: symbols)
         guard !mapped.isEmpty else { return [:] }
 
@@ -112,7 +115,7 @@ private struct CoinGeckoPrice: Decodable {
 struct DefiLlamaPriceProvider: PriceProvider {
     let resolver: PriceIdResolver
 
-    func fetchPrices(chainId: UInt64, symbols: [String]) async throws -> [String: Double] {
+    func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {
         let mapped = await resolver.resolve(chainId: chainId, symbols: symbols)
         guard !mapped.isEmpty else { return [:] }
 
@@ -159,7 +162,7 @@ private struct DefiLlamaPrice: Decodable {
 // MARK: - TCA Dependency
 
 struct PriceClient {
-    var fetchPrices: @Sendable (UInt64, [String]) async throws -> [String: Double]
+    var fetchPrices: @Sendable (String, [String]) async throws -> [String: Double]
 }
 
 extension PriceClient: DependencyKey {
@@ -219,7 +222,7 @@ private actor PriceCache {
     private let cachePrefix = "xwallet.price.cache."
     private let ttl: TimeInterval = 300 // 5 minutes
 
-    static func key(chainId: UInt64, symbols: [String]) -> String {
+    static func key(chainId: String, symbols: [String]) -> String {
         "\(chainId):\(symbols.sorted().joined(separator: ","))"
     }
 

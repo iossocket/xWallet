@@ -8,7 +8,6 @@
 import Foundation
 import ComposableArchitecture
 import EthereumKit
-import BigInt
 import SwiftUI
 
 enum ViewMode: Equatable {
@@ -60,8 +59,7 @@ struct Wallet {
         case balanceRequest
     }
 
-    @Dependency(\.evmProvider) var evmProvider
-    @Dependency(\.erc20Client) var erc20Client
+    @Dependency(\.balanceFetcher) var balanceFetcher
     @Dependency(\.chainRegistry) var chainRegistry
     @Dependency(\.priceClient) var priceClient
 
@@ -81,66 +79,19 @@ struct Wallet {
                 return .none
 
             case .fetchAllBalances:
-                guard let address = state.activeIdentity?.primaryAddress else { return .none }
+                guard let identity = state.activeIdentity else { return .none }
                 state.isLoadingAllChains = true
                 state.errorMessage = nil
                 let chains = state.supportedChains
-                return .run { [providerFactory = evmProvider.provider, erc20 = erc20Client] send in
-                    var balances: [ChainBalance] = []
-                    await withTaskGroup(of: ChainBalance?.self) { group in
-                        for chain in chains {
-                            group.addTask {
-                                do {
-                                    let provider = providerFactory(chain)
-                                    guard let evmAddr = EthereumAddress(address) else { return nil }
-
-                                    let ethHex: String = try await provider.send(
-                                        request: provider.getBalanceRequest(address: evmAddr, block: .latest)
-                                    )
-                                    let cleaned = ethHex.lowercased().hasPrefix("0x")
-                                        ? String(ethHex.dropFirst(2)) : ethHex
-                                    let nativeWei = BigUInt(cleaned, radix: 16) ?? .zero
-
-                                    let tokenList = ERC20TokenList.tokens(for: chain.chainId)
-                                    var tokenBalances: [TokenBalance] = []
-                                    for token in tokenList {
-                                        if let bal = try? await erc20.balanceOf(address, token, chain), bal > .zero {
-                                            tokenBalances.append(TokenBalance(
-                                                chainId: chain.chainId,
-                                                contractAddress: token.address,
-                                                symbol: token.symbol,
-                                                name: token.name,
-                                                decimals: token.decimals,
-                                                rawBalance: bal
-                                            ))
-                                        }
-                                    }
-
-                                    return ChainBalance(
-                                        chainId: chain.chainId,
-                                        chainName: chain.name,
-                                        symbol: chain.symbol,
-                                        decimals: chain.decimals,
-                                        nativeBalance: nativeWei,
-                                        tokens: tokenBalances
-                                    )
-                                } catch {
-                                    return nil
-                                }
-                            }
-                        }
-                        for await result in group {
-                            if let balance = result { balances.append(balance) }
-                        }
-                    }
-                    let chainOrder = chains.map(\.chainId)
-                    balances.sort { chainOrder.firstIndex(of: $0.chainId) ?? 0 < chainOrder.firstIndex(of: $1.chainId) ?? 0 }
-                    await send(.allBalancesResponse(.success(balances)))
+                return .run { [balanceFetcher] send in
+                    await send(.allBalancesResponse(
+                        Result { try await balanceFetcher.fetchBalances(identity, chains) }
+                    ))
                 }.cancellable(id: CancelID.balanceRequest, cancelInFlight: true)
 
             case .fetchPrices:
                 // Collect all unique symbols from chainBalances, grouped by chainId
-                var symbolsByChain: [UInt64: [String]] = [:]
+                var symbolsByChain: [String: [String]] = [:]
                 for cb in state.chainBalances {
                     var symbols = [cb.symbol]
                     symbols += cb.tokens.map(\.symbol)
@@ -244,7 +195,7 @@ struct Wallet {
 extension Wallet.State {
     /// Rebuild assets, totalUsdValue, currentChainUsdValue from chainBalances + prices.
     mutating func rebuildAssets() {
-        let currentChainId = currentChain.chainId
+        let currentChainId = String(currentChain.chainId)
         let visibleBalances = chainBalances.filter { $0.chainId == currentChainId }
 
         var items: [AssetItem] = []

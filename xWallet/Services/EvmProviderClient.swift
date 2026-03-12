@@ -36,15 +36,15 @@ struct EvmProviderWrapper: EvmProviderProtocol {
     }
 
     func getBalanceRequest(address: EthereumAddress, block: BlockTag) -> ChainRequest {
-        provider.getBalanceRequest(address: address, block: block)
+        EthereumRequestBuilder.getBalanceRequest(address: address, block: block)
     }
 
     func sendRawTransactionRequest(_ raw: String) -> ChainRequest {
-        provider.sendRawTransactionRequest(raw)
+        EthereumRequestBuilder.sendRawTransactionRequest(raw)
     }
 
     func chainIdRequest() -> ChainRequest {
-        provider.chainIdRequest()
+        EthereumRequestBuilder.chainIdRequest()
     }
 
     func waitForTransaction(hash: String) async throws -> EthereumReceipt {

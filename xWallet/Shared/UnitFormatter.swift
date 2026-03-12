@@ -8,7 +8,7 @@
 import BigInt
 
 enum UnitFormatter {
-    static func formatWei(_ wei: BigUInt, decimals: UInt8) -> String {
+    static func formatWei(_ wei: BigUInt, decimals: Int) -> String {
         guard wei > 0 else { return "0" }
         let divisor = BigUInt(10).power(Int(decimals))
         let whole = wei / divisor
@@ -19,7 +19,7 @@ enum UnitFormatter {
         return frac.isEmpty ? whole.description : "\(whole).\(frac)"
     }
     
-    static func parse(_ input: String, decimals: UInt8) -> BigUInt? {
+    static func parse(_ input: String, decimals: Int) -> BigUInt? {
         guard let bigUint = BigUInt(input, radix: 10) else {
             return nil
         }
