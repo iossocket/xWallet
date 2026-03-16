@@ -15,6 +15,9 @@
 		5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */; };
 		5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */; };
 		5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E6272F4ED0F600B70BC6 /* GRDB */; };
+		5AFE99422F67A50300A6E68F /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99412F67A50300A6E68F /* SnapKit */; };
+		5AFE99452F67A8A000A6E68F /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99442F67A8A000A6E68F /* Nuke */; };
+		5AFE99472F67A8A000A6E68F /* NukeExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99462F67A8A000A6E68F /* NukeExtensions */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -53,11 +56,14 @@
 				5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */,
 				5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */,
 				5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */,
+				5AFE99472F67A8A000A6E68F /* NukeExtensions in Frameworks */,
 				5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */,
 				5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */,
 				5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */,
 				5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */,
 				5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */,
+				5AFE99422F67A50300A6E68F /* SnapKit in Frameworks */,
+				5AFE99452F67A8A000A6E68F /* Nuke in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -117,6 +123,9 @@
 				5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */,
 				5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */,
 				5AB3E6272F4ED0F600B70BC6 /* GRDB */,
+				5AFE99412F67A50300A6E68F /* SnapKit */,
+				5AFE99442F67A8A000A6E68F /* Nuke */,
+				5AFE99462F67A8A000A6E68F /* NukeExtensions */,
 			);
 			productName = xWallet;
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
@@ -178,6 +187,8 @@
 				5AB3E5E02F41D4AD00B70BC6 /* XCLocalSwiftPackageReference "../../../../../../../Volumes/PSSD/projects/MultiChainKit" */,
 				5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */,
+				5AFE99402F67A50300A6E68F /* XCRemoteSwiftPackageReference "SnapKit" */,
+				5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A54CB262ED3219E005AF084 /* Products */;
@@ -528,6 +539,22 @@
 				version = 7.10.0;
 			};
 		};
+		5AFE99402F67A50300A6E68F /* XCRemoteSwiftPackageReference "SnapKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.7.1;
+			};
+		};
+		5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kean/Nuke";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.9.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -566,6 +593,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
+		};
+		5AFE99412F67A50300A6E68F /* SnapKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AFE99402F67A50300A6E68F /* XCRemoteSwiftPackageReference "SnapKit" */;
+			productName = SnapKit;
+		};
+		5AFE99442F67A8A000A6E68F /* Nuke */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = Nuke;
+		};
+		5AFE99462F67A8A000A6E68F /* NukeExtensions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */;
+			productName = NukeExtensions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

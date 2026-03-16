@@ -5,7 +5,7 @@
 //  Created by Xueliang Zhu on 10/3/26.
 //
 
-public protocol Paginator: Sendable {
+public protocol Paginator<Item>: Sendable {
     associatedtype Item: Sendable
 
     @discardableResult

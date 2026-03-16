@@ -1,5 +1,5 @@
 {
-  "originHash" : "77de24265602e60b1084cdfd36068375a6d7e39c183e3be10132eecd34c3ef8b",
+  "originHash" : "e23e61c36051e7c82733879ef0c0bf34f7b81499177c67a930dd8c680a8707a7",
   "pins" : [
     {
       "identity" : "bigint",
@@ -38,12 +38,30 @@
       }
     },
     {
+      "identity" : "nuke",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/kean/Nuke",
+      "state" : {
+        "revision" : "83e19143355b02e9261edb2323b3e1e93287ebb9",
+        "version" : "12.9.0"
+      }
+    },
+    {
       "identity" : "secp256k1.swift",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/GigaBitcoin/secp256k1.swift.git",
       "state" : {
         "revision" : "8c62aba8a3011c9bcea232e5ee007fb0b34a15e2",
         "version" : "0.21.1"
+      }
+    },
+    {
+      "identity" : "snapkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SnapKit/SnapKit.git",
+      "state" : {
+        "revision" : "2842e6e84e82eb9a8dac0100ca90d9444b0307f4",
+        "version" : "5.7.1"
       }
     },
     {

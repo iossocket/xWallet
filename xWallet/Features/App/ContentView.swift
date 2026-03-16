@@ -16,7 +16,8 @@ struct ContentView: View {
                 .tabItem { Label("Market", systemImage: "chart.bar.fill") }
                 .tag(Tab.market)
 
-            Text("Discover")
+            NewsFeedBridge()
+                .ignoresSafeArea()
                 .tabItem { Label("Discover", systemImage: "safari.fill") }
                 .tag(Tab.discover)
 

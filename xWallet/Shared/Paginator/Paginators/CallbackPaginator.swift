@@ -66,6 +66,9 @@ public final class CallbackPaginator<
                     listener(.success(page))
                     return
                 case .loading:
+                    // Another fetch is in progress — report cancelled so the
+                    // continuation is always resumed and never leaked.
+                    listener(.failure(.cancelled))
                     return
                 default:
                     break
