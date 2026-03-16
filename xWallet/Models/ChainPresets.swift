@@ -1,14 +1,15 @@
 //
-//  EvmChainPresets.swift
+//  ChainPresets.swift
 //  xWallet
 //
 //  Created by Xueliang Zhu on 5/3/26.
 //
 
 import EthereumKit
+import StarknetKit
 import Foundation
 
-enum EvmChainPresets {
+enum ChainPresets {
     static let allPresets: [EvmChain] = [
         .mainnet,
         .sepolia,
@@ -35,4 +36,9 @@ enum EvmChainPresets {
             )
         }
     }
+    
+    static let starknetChains: [Starknet] = [
+        .mainnet,
+        .sepolia
+    ]
 }

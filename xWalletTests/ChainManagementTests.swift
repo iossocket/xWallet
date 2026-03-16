@@ -74,7 +74,7 @@ struct ChainManagementTests {
     @Test
     func chainToggledUpdate() async {
         let testChain = testChains[0]
-        let presetChains = EvmChainPresets.presetsWithEnabledStatus()
+        let presetChains = ChainPresets.presetsWithEnabledStatus()
 
         var initialState = ChainManagement.State(chains: [testChain])
         initialState.errorMessage = "Previous error"  // Set initial error so clearing it is a state change

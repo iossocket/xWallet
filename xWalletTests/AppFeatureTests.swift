@@ -15,7 +15,7 @@ import EthereumKit
 struct AppFeatureTests {
     @Test
     func initializeChainsWhenDatabaseEmpty() async {
-        let presetChains = EvmChainPresets.presetsWithEnabledStatus()
+        let presetChains = ChainPresets.presetsWithEnabledStatus()
 
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()

@@ -92,7 +92,7 @@ struct AppFeature {
                             let existingChains = try await chainRegistry.listAllChains()
                             if existingChains.isEmpty {
                                 // Insert preset chains with enabled status
-                                let presetChains = EvmChainPresets.presetsWithEnabledStatus()
+                                let presetChains = ChainPresets.presetsWithEnabledStatus()
                                 return try await chainRegistry.batchInsertChains(presetChains)
                             }
                             return existingChains

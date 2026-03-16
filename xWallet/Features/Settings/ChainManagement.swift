@@ -55,7 +55,7 @@ struct ChainManagement {
                     state.chains = chains
                     return .none
                 } else {
-                    let chains = EvmChainPresets.presetsWithEnabledStatus()
+                    let chains = ChainPresets.presetsWithEnabledStatus()
                     return .run { send in
                         await send(.batchInsertChains(
                             Result { try await chainRegistry.batchInsertChains(chains)}

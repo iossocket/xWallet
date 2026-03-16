@@ -11,63 +11,9 @@ import MultiChainKit
 import BigInt
 import Dependencies
 
-enum ERC20ABI {
-    static let json = """
-[
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "name",
-    "outputs": [{ "name": "", "type": "string" }],
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "symbol",
-    "outputs": [{ "name": "", "type": "string" }],
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [],
-    "name": "decimals",
-    "outputs": [{ "name": "", "type": "uint8" }],
-    "type": "function"
-  },
-  {
-    "constant": true,
-    "inputs": [{ "name": "owner", "type": "address" }],
-    "name": "balanceOf",
-    "outputs": [{ "name": "", "type": "uint256" }],
-    "type": "function"
-  },
-  {
-    "constant": false,
-    "inputs": [
-      { "name": "to", "type": "address" },
-      { "name": "value", "type": "uint256" }
-    ],
-    "name": "transfer",
-    "outputs": [{ "name": "", "type": "bool" }],
-    "type": "function"
-  }
-]
-"""
-}
-
-struct ERC20Token: Equatable, Identifiable, Sendable {
-    let chainId: UInt64
-    let address: String
-    let symbol: String
-    let decimals: Int
-    let name: String
-    var id: String { "\(chainId):\(address.lowercased())" }
-}
-
 struct ERC20Client {
     var balanceOf: @Sendable (String, ERC20Token, EvmChainRecord) async throws -> BigUInt
-    var transfer: @Sendable (String, BigUInt, ERC20Token, EthereumSignableAccount) async throws -> String
+    var transfer: @Sendable (String, BigUInt, ERC20Token, EthereumAccount) async throws -> String
     var tokenInfo: @Sendable (String, EvmChainRecord) async throws -> ERC20Token
 }
 
@@ -83,7 +29,7 @@ extension ERC20Client: DependencyKey {
                 let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: ERC20ABI.json,
+                    abiJson: ERC20ABI.evm,
                     provider: provider
                 )
 
@@ -105,8 +51,8 @@ extension ERC20Client: DependencyKey {
 
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: ERC20ABI.json,
-                    provider: provider
+                    abiJson: ERC20ABI.evm,
+                    provider: provider as! EthereumProvider
                 )
 
                 return try await contract.write(
@@ -125,7 +71,7 @@ extension ERC20Client: DependencyKey {
                 let provider = EthereumProvider(chain: chain.toChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
-                    abiJson: ERC20ABI.json,
+                    abiJson: ERC20ABI.evm,
                     provider: provider
                 )
                 
@@ -135,7 +81,7 @@ extension ERC20Client: DependencyKey {
                 let (s, d, n) = try await (symbol, decimals, name)
                 
                 return ERC20Token(
-                    chainId: provider.chain.chainId,
+                    chainId: String(provider.chain.chainId),
                     address: contractAddress,
                     symbol: s,
                     decimals: Int(d),
@@ -151,7 +97,7 @@ extension ERC20Client: DependencyKey {
             transfer: { _, _, _, _ in "0xdeadbeef" },
             tokenInfo: { address, chain in
                 ERC20Token(
-                    chainId: chain.chainId,
+                    chainId: String(chain.chainId),
                     address: address,
                     symbol: "TEST",
                     decimals: 18,

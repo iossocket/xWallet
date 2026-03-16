@@ -18,7 +18,7 @@ struct WalletClient {
     var importPrivateKey: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
     var listWallets: @Sendable () async throws -> [WalletIdentity]
     var switchWallet: @Sendable (UUID) async throws -> Void
-    var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumSignableAccount
+    var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
     var activeStarknetAccount: @Sendable () async throws -> StarknetAccount
     var activeIdentity: @Sendable () async throws -> WalletIdentity
     var deleteWallet: @Sendable (UUID) async throws -> Void
@@ -93,11 +93,9 @@ extension WalletClient: DependencyKey {
                 let secret = try store.loadSecret(for: identity.id)
                 switch secret {
                 case .mnemonic(let mnemonic):
-                    let signer = try EthereumSigner(mnemonic: mnemonic, path: .ethereum)
-                    return try EthereumSignableAccount(signer, provider: provider)
+                    return try EthereumAccount(mnemonic: mnemonic, path: .ethereum)
                 case .privateKey(let data, _):
-                    let signer = try EthereumSigner(privateKey: data)
-                    return try EthereumSignableAccount(signer, provider: provider)
+                    return try EthereumAccount(privateKey: data)
                 }
             },
             activeStarknetAccount: {
@@ -105,24 +103,19 @@ extension WalletClient: DependencyKey {
                 guard identity.chainType == .starknet else {
                     throw WalletError.chainMismatch
                 }
+                
                 let secret = try store.loadSecret(for: identity.id)
                 switch secret {
                 case .mnemonic(let mnemonic):
-                    let signer = try StarknetSigner(mnemonic: mnemonic, path: .starknet)
-                    guard let pubKey = signer.publicKeyFelt else {
-                        throw SignerError.publicKeyDerivationFailed
+                    guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
+                        throw CryptoError.invalidMnemonic
                     }
-                    let accountType = OpenZeppelinAccount()
-                    let address = try accountType.computeAddress(publicKey: pubKey, salt: pubKey)
-                    return StarknetAccount(signer: signer, address: address, chain: .sepolia)
+                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: .sepolia)
                 case .privateKey(let data, _):
-                    let signer = try StarknetSigner(privateKey: data)
-                    guard let pubKey = signer.publicKeyFelt else {
-                        throw SignerError.publicKeyDerivationFailed
+                    guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
+                        throw CryptoError.invalidMnemonic
                     }
-                    let accountType = OpenZeppelinAccount()
-                    let address = try accountType.computeAddress(publicKey: pubKey, salt: pubKey)
-                    return StarknetAccount(signer: signer, address: address, chain: .sepolia)
+                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: .sepolia)
                 }
             },
             activeIdentity: {
@@ -173,45 +166,81 @@ extension DependencyValues {
 }
 
 extension WalletClient {
-    private static func deriveAddress(mnemonic: String, chain: ChainType) throws -> DerivedAddress {
+    private static func deriveAddress(mnemonic: String, chain: ChainType, options: Dictionary<String, String>? = nil) throws -> DerivedAddress {
         switch chain {
         case .evm:
-            let signer = try EthereumSigner(mnemonic: mnemonic, path: .ethereum)
-            let account = try EthereumSignableAccount(signer)
+            let account = try EthereumAccount(mnemonic: mnemonic, path: .ethereum)
             return DerivedAddress(
                 chain: .evm,
                 path: "m/44'/60'/0'/0/0",
                 address: account.address.checksummed
             )
         case .starknet:
-            let signer = try StarknetSigner(mnemonic: mnemonic, path: .starknet)
-            guard let pubKey = signer.publicKeyFelt else {
-                throw SignerError.publicKeyDerivationFailed
+            let seed = try BIP39.seed(from: mnemonic, password: "")
+            let privateKey = try StarknetKeyDerivation.derivePrivateKey(seed: seed, path: DerivationPath.starknet)
+            guard let publicKey = try? StarkCurve.getPublicKey(privateKey: privateKey) else {
+              throw CryptoError.publicKeyDerivationFailed
             }
-            let accountType = OpenZeppelinAccount()
-            let address = try accountType.computeAddress(publicKey: pubKey, salt: pubKey)
-            return DerivedAddress(
-                chain: .starknet,
-                path: "m/44'/9004'/0'/0/0",
-                address: address.description
-            )
+            guard let options = options, let accountType = options["accountType"] else {
+                throw CryptoError.publicKeyDerivationFailed
+            }
+            switch accountType {
+            case "oz":
+                let accountType = OpenZeppelinAccount()
+                let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
+                return DerivedAddress(
+                    chain: .starknet,
+                    path: "m/44'/9004'/0'/0/0",
+                    address: address.checksummed
+                )
+            case "argent":
+                let accountType = ArgentAccount()
+                let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
+                return DerivedAddress(
+                    chain: .starknet,
+                    path: "m/44'/9004'/0'/0/0",
+                    address: address.checksummed
+                )
+            default:
+                break
+            }
+            throw CryptoError.publicKeyDerivationFailed
         }
     }
     
-    private static func deriveAddressFromPrivateKey(_ data: Data, chain: ChainType) throws -> DerivedAddress {
+    private static func deriveAddressFromPrivateKey(_ data: Data, chain: ChainType, options: Dictionary<String, String>? = nil) throws -> DerivedAddress {
         switch chain {
         case .evm:
-            let signer = try EthereumSigner(privateKey: data)
-            let account = try EthereumSignableAccount(signer)
+            let account = try EthereumAccount(privateKey: data)
             return DerivedAddress(chain: .evm, path: "", address: account.address.checksummed)
         case .starknet:
-            let signer = try StarknetSigner(privateKey: data)
-            guard let pubKey = signer.publicKeyFelt else {
-                throw SignerError.publicKeyDerivationFailed
+            guard let publicKey = try? StarkCurve.getPublicKey(privateKey: Felt(data)) else {
+              throw CryptoError.publicKeyDerivationFailed
             }
-            let accountType = OpenZeppelinAccount()
-            let address = try accountType.computeAddress(publicKey: pubKey, salt: pubKey)
-            return DerivedAddress(chain: .starknet, path: "", address: address.description)
+            guard let options = options, let accountType = options["accountType"] else {
+                throw CryptoError.publicKeyDerivationFailed
+            }
+            switch accountType {
+            case "oz":
+                let accountType = OpenZeppelinAccount()
+                let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
+                return DerivedAddress(
+                    chain: .starknet,
+                    path: "m/44'/9004'/0'/0/0",
+                    address: address.checksummed
+                )
+            case "argent":
+                let accountType = ArgentAccount()
+                let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
+                return DerivedAddress(
+                    chain: .starknet,
+                    path: "m/44'/9004'/0'/0/0",
+                    address: address.checksummed
+                )
+            default:
+                break
+            }
+            throw CryptoError.publicKeyDerivationFailed
         }
     }
 

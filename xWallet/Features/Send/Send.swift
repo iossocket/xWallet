@@ -103,7 +103,7 @@ struct Send {
 
                         let tx: EthereumTransaction
                         if let asset = selectedAsset, asset.id != "ETH" {
-                            guard let token = ERC20TokenList.token(address: String(asset.id.split(separator: ":")[1]), chainId: chain.chainId) else {
+                            guard let token = ERC20TokenList.token(address: String(asset.id.split(separator: ":")[1]), chainId: String(chain.chainId)) else {
                                 throw SendError.invalidToken
                             }
                             guard let tokenAmount = UnitFormatter.parse(amount, decimals: token.decimals) else {
@@ -164,7 +164,7 @@ struct Send {
                 return .run { [walletClient, providerFactory = evmProvider.provider, preparedTx] send in
                     await send(.sendResponse(Result {
                         var transaction = preparedTx
-                        let account: EthereumSignableAccount = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain.toChain()))
+                        let account: EthereumAccount = try await walletClient.activeEvmAccount(EthereumProvider(chain: chain.toChain()))
                         let provider = providerFactory(chain)
                         try account.sign(transaction: &transaction)
                         guard let raw = transaction.rawTransaction else {

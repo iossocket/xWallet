@@ -8,6 +8,7 @@
 import Foundation
 import GRDB
 import EthereumKit
+import StarknetKit
 
 struct EvmChainRecord: Codable, FetchableRecord, PersistableRecord, Sendable, Equatable {
     static let databaseTableName = "evm_chain"
@@ -53,6 +54,10 @@ extension Chain {
     func toEvmChain() -> EvmChain {
         EvmChain(chainId: UInt64(self.chainId)!, name: self.name, rpcURL: URL(string: self.rpcURL)!, isTestnet: self.isTestnet,
                  symbol: self.symbol, decimals: self.decimals, explorerURL: self.explorerURL == nil ? nil : URL(string: self.explorerURL!))
+    }
+    
+    func toStrkChain() -> Starknet {
+        Starknet(chainId: Felt(self.chainId)!, name: self.name, rpcURL: URL(string: self.rpcURL)!, isTestnet: self.isTestnet, explorerURL: self.explorerURL == nil ? nil : URL(string: self.explorerURL!))
     }
 }
 
