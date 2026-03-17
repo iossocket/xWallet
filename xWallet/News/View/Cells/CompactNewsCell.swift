@@ -125,14 +125,7 @@ final class CompactNewsCell: UICollectionViewCell {
                 placeholder: nil,
                 transition: .fadeIn(duration: 0.15)
             )
-            NukeExtensions.loadImage(with: request, options: options, into: thumbnailView) { result in
-                switch result {
-                case .success(let response):
-                    print("[CompactCell] loaded: \(response.image.size)")
-                case .failure(let error):
-                    print("[CompactCell] failed: \(error)")
-                }
-            }
+            NukeExtensions.loadImage(with: request, options: options, into: thumbnailView)
         } else {
             thumbnailView.image = nil
             placeholderIcon.isHidden = false

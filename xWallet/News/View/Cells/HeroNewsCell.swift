@@ -112,14 +112,7 @@ final class HeroNewsCell: UICollectionViewCell {
                 placeholder: nil,
                 transition: .fadeIn(duration: 0.15)
             )
-            NukeExtensions.loadImage(with: request, options: options, into: heroImageView) { result in
-                switch result {
-                case .success(let response):
-                    print("[HeroCell] loaded: \(response.image.size)")
-                case .failure(let error):
-                    print("[HeroCell] failed: \(error)")
-                }
-            }
+            NukeExtensions.loadImage(with: request, options: options, into: heroImageView)
         } else {
             heroImageView.image = nil
             placeholderIcon.isHidden = false
