@@ -15,7 +15,7 @@ import GRDB
 struct WalletClient {
     var createWallet: @Sendable (String?, ChainType) async throws -> WalletIdentity
     var importMnemonic: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
-    var importPrivateKey: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
+    var importPrivateKey: @Sendable (String, String?, ChainType, StarknetAccountType?, StarknetChainId?) async throws -> WalletIdentity
     var listWallets: @Sendable () async throws -> [WalletIdentity]
     var switchWallet: @Sendable (UUID) async throws -> Void
     var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
@@ -62,9 +62,9 @@ extension WalletClient: DependencyKey {
                 try store.setActiveWallet(identity.id)
                 return identity
             },
-            importPrivateKey: { hex, name, chain in
+            importPrivateKey: { hex, name, chain, type, chainId in
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
-                let address = try deriveAddressFromPrivateKey(pkData, chain: chain)
+                let address = try deriveAddressFromPrivateKey(pkData, chain: chain, accountType: type)
                 // same private key will generate multipy same records
                 let identity = WalletIdentity(
                     id: UUID(),
@@ -147,7 +147,7 @@ extension WalletClient: DependencyKey {
         return WalletClient(
             createWallet: { _, _ in testIdentity },
             importMnemonic: { _, _, _ in testIdentity },
-            importPrivateKey: { _, _, _ in testIdentity },
+            importPrivateKey: { _, _, _, _, _ in testIdentity },
             listWallets: { [testIdentity] },
             switchWallet: { _ in },
             activeEvmAccount: { _ in throw WalletError.notFound },
@@ -208,7 +208,7 @@ extension WalletClient {
         }
     }
     
-    private static func deriveAddressFromPrivateKey(_ data: Data, chain: ChainType, options: Dictionary<String, String>? = nil) throws -> DerivedAddress {
+    private static func deriveAddressFromPrivateKey(_ data: Data, chain: ChainType, accountType: StarknetAccountType? = nil) throws -> DerivedAddress {
         switch chain {
         case .evm:
             let account = try EthereumAccount(privateKey: data)
@@ -217,11 +217,9 @@ extension WalletClient {
             guard let publicKey = try? StarkCurve.getPublicKey(privateKey: Felt(data)) else {
               throw CryptoError.publicKeyDerivationFailed
             }
-            guard let options = options, let accountType = options["accountType"] else {
-                throw CryptoError.publicKeyDerivationFailed
-            }
+            
             switch accountType {
-            case "oz":
+            case .oz:
                 let accountType = OpenZeppelinAccount()
                 let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
                 return DerivedAddress(
@@ -229,7 +227,7 @@ extension WalletClient {
                     path: "m/44'/9004'/0'/0/0",
                     address: address.checksummed
                 )
-            case "argent":
+            case .argent:
                 let accountType = ArgentAccount()
                 let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
                 return DerivedAddress(

@@ -7,10 +7,22 @@
 
 import Foundation
 import GRDB
+import StarknetKit
 
 enum ChainType: String, Codable, Equatable, Sendable {
     case evm
     case starknet
+}
+
+enum StarknetAccountType: String, Codable, Equatable, Sendable {
+    case oz
+    case argent
+}
+
+
+enum StarknetChainId: String, Codable, Equatable, Sendable {
+    case mainnet = "SN_MAIN"
+    case sepolia = "SN_SEPOLIA"
 }
 
 enum WalletSource: Equatable, Sendable {
@@ -30,6 +42,7 @@ struct WalletIdentity: Identifiable, Equatable, Sendable, Codable {
     let sourceType: SourceType
     let chainType: ChainType
     let createdAt: Date
+    var chainId: String?
     var derivedAddresses: [DerivedAddress]
 
     enum SourceType: String, Codable, Sendable {
@@ -51,6 +64,7 @@ struct WalletIdentityRecord: Codable, FetchableRecord, PersistableRecord, Sendab
     let chainType: String    // "evm" / "starknet"
     let createdAt: Double    // timeIntervalSince1970
     var isActive: Bool
+    var chainId: String?
 }
 
 struct DerivedAddressRecord: Codable, FetchableRecord, PersistableRecord, Sendable {

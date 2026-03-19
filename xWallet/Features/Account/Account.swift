@@ -26,6 +26,8 @@ struct Account {
 
         var onboardingStep: OnboardingStep = .landing
         var selectedChain: ChainType = .evm
+        var selectedStarknetAccountType: StarknetAccountType? = nil
+        var selectedStarknetChainId: StarknetChainId? = nil
         var generatedMnemonic: String = ""
         var mnemonicInput: String = ""
         var privateKeyInput: String = ""
@@ -39,6 +41,8 @@ struct Account {
         case onAppear
         case lockButtonTapped
         case chainSelected(ChainType)
+        case starknetAccountTypeSelected(StarknetAccountType?)
+        case starknetChainIdSelected(StarknetChainId?)
 
         // new wallet
         case createWalletTapped
@@ -74,7 +78,18 @@ struct Account {
                 }
             case .chainSelected(let chain):
                 state.selectedChain = chain
+                if chain == .evm {
+                    state.selectedStarknetAccountType = nil
+                    state.selectedStarknetChainId = nil
+                }
                 return .none
+            case .starknetAccountTypeSelected(let type):
+                state.selectedStarknetAccountType = type
+                return .none
+            case .starknetChainIdSelected(let chainId):
+                state.selectedStarknetChainId = chainId
+                return .none
+            
             case .createWalletTapped:
                 state.isLoading = true
                 state.errorMessage = nil
@@ -141,9 +156,11 @@ struct Account {
                 let hex = state.privateKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 let chain = state.selectedChain
                 let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                let accountType = state.selectedStarknetAccountType
+                let chainId = state.selectedStarknetChainId
                 return .run { [walletClient] send in
                     await send(.importPrivateKeyResponse(
-                        Result { try await walletClient.importPrivateKey(hex, name, chain) }
+                        Result { try await walletClient.importPrivateKey(hex, name, chain, accountType, chainId) }
                     ))
                 }
             case .importPrivateKeyResponse(.success(let identity)):

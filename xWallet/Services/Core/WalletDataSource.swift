@@ -25,7 +25,8 @@ struct WalletDataSource {
                 sourceType: identity.sourceType.rawValue,
                 chainType: identity.chainType.rawValue,
                 createdAt: identity.createdAt.timeIntervalSince1970,
-                isActive: false
+                isActive: false,
+                chainId: identity.chainId
             ).insert(db)
 
             for addr in identity.derivedAddresses {
@@ -59,12 +60,13 @@ struct WalletDataSource {
                     sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
                     chainType: ChainType(rawValue: record.chainType)!,
                     createdAt: Date(timeIntervalSince1970: record.createdAt),
+                    chainId: record.chainId,
                     derivedAddresses: addresses
                 )
             }
         }
     }
-    
+
     func deleteIdentity(_ id: UUID) throws {
         try dbQueue.write { db in
             _ = try WalletIdentityRecord.deleteOne(db, key: id.uuidString)
@@ -89,7 +91,8 @@ struct WalletDataSource {
                 sourceType: identity.sourceType.rawValue,
                 chainType: identity.chainType.rawValue,
                 createdAt: identity.createdAt.timeIntervalSince1970,
-                isActive: false
+                isActive: false,
+                chainId: identity.chainId
             ).insert(db)
 
             for addr in identity.derivedAddresses {
@@ -130,6 +133,7 @@ struct WalletDataSource {
                 sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
                 chainType: ChainType(rawValue: record.chainType)!,
                 createdAt: Date(timeIntervalSince1970: record.createdAt),
+                chainId: record.chainId,
                 derivedAddresses: addresses
             )
         }

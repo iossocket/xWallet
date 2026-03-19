@@ -80,6 +80,11 @@ enum LocalStorage {
                     .references("chains", onDelete: .cascade)
             }
         }
+        migrator.registerMigration("v4") { db in
+            try db.alter(table: "wallet_identity") { t in
+                t.add(column: "chainId", .text)
+            }
+        }
         return migrator
     }
 }

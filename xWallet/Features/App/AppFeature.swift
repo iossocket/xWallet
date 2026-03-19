@@ -66,6 +66,11 @@ struct AppFeature {
                 state.launchPhase = .ready
                 return .none
 
+            case .settings(.importAccount(.presented(.createWalletResponse(.success)))),
+                 .settings(.importAccount(.presented(.importMnemonicResponse(.success)))),
+                 .settings(.importAccount(.presented(.importPrivateKeyResponse(.success)))):
+                return .send(.activeIdentityCheck)
+
             case .account(.onAppear):
                 if let _ = state.account.activeIdentity {
                     state.launchPhase = .ready

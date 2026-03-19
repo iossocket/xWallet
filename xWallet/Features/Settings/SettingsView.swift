@@ -18,6 +18,8 @@ struct SettingsView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     header
+                    accountSection
+                    walletListSection
                     chainManagementSection
                 }
                 .padding(.horizontal, 20)
@@ -35,6 +37,76 @@ struct SettingsView: View {
                 ChainManagementView(store: chainStore)
             }
         }
+        .sheet(item: $store.scope(state: \.importAccount, action: \.importAccount)) { accountStore in
+            NavigationStack {
+                ImportAccountView(store: accountStore)
+            }
+        }
+        .sheet(item: $store.scope(state: \.walletList, action: \.walletList)) { walletListStore in
+            NavigationStack {
+                WalletListView(store: walletListStore)
+            }
+        }
+    }
+
+    private var accountSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Account")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Button {
+                store.send(.importAccountTapped)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Import Account")
+                            .foregroundStyle(.white)
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Import via recovery phrase or private key")
+                            .foregroundStyle(.gray)
+                            .font(.system(size: 12))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.gray)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+        .cardStyle()
+    }
+
+    private var walletListSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Wallets")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            Button {
+                store.send(.walletListTapped)
+            } label: {
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("View All Wallets")
+                            .foregroundStyle(.white)
+                            .font(.system(size: 14, weight: .semibold))
+                        Text("Browse all wallet identities in database")
+                            .foregroundStyle(.gray)
+                            .font(.system(size: 12))
+                    }
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .foregroundStyle(.gray)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.04))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+            }
+        }
+        .cardStyle()
     }
 
     private var chainManagementSection: some View {
