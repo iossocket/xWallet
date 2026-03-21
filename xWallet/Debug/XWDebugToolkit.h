@@ -9,7 +9,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-/// FPS monitor using CADisplayLink. Auto-activates via +load.
+/// FPS monitor using CADisplayLink. Starts when the debug overlay is shown.
 @interface XWFPSMonitor : NSObject
 
 + (instancetype)shared;
@@ -18,16 +18,28 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, readonly) NSInteger droppedFrameCount;
 @property (nonatomic, readonly) NSInteger totalFrameCount;
 
+- (void)startMonitoring;
+- (void)stopMonitoring;
 - (double)droppedFrameRate;
 
 @end
 
-/// Network request interceptor. Swizzles URLSession in +load.
-@interface XWNetworkInterceptor : NSObject
+/// Main thread stall detector using RunLoop observer. Starts when the debug overlay is shown.
+@interface XWMainThreadStallDetector : NSObject
 
 + (instancetype)shared;
 
-@property (nonatomic, readonly) NSArray<NSDictionary *> *recentLogs;
+/// Stall threshold in seconds (default 0.05 = 50ms).
+@property (nonatomic, assign) CFTimeInterval stallThreshold;
+
+/// Total stall count since monitoring started.
+@property (nonatomic, readonly) NSInteger stallCount;
+
+/// Most recent stall records (max 50).
+@property (nonatomic, readonly) NSArray<NSDictionary *> *recentStalls;
+
+- (void)startMonitoring;
+- (void)stopMonitoring;
 
 @end
 

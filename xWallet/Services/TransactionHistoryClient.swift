@@ -51,6 +51,20 @@ struct TransactionHistoryClient {
 
 extension TransactionHistoryClient: DependencyKey {
     static var liveValue: TransactionHistoryClient {
+        live()
+    }
+
+    static var testValue: TransactionHistoryClient {
+        TransactionHistoryClient(
+            fetchHistory: { _, _, _ in
+                HistoryPage(transactions: [], nextPageParams: nil)
+            }
+        )
+    }
+}
+
+extension TransactionHistoryClient {
+    static func live(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> TransactionHistoryClient {
         TransactionHistoryClient(
             fetchHistory: { address, chain, nextPageParams in
                 guard let apiDomain = blockscoutDomain(forChainId: chain.chainId) else {
@@ -70,7 +84,7 @@ extension TransactionHistoryClient: DependencyKey {
                     throw HistoryError.invalidURL
                 }
 
-                let (data, response) = try await URLSession.shared.data(from: requestURL)
+                let (data, response) = try await httpClient.data(from: requestURL)
                 guard let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode) else {
                     throw HistoryError.httpError
@@ -102,14 +116,6 @@ extension TransactionHistoryClient: DependencyKey {
                     transactions: transactions,
                     nextPageParams: decoded.next_page_params
                 )
-            }
-        )
-    }
-
-    static var testValue: TransactionHistoryClient {
-        TransactionHistoryClient(
-            fetchHistory: { _, _, _ in
-                HistoryPage(transactions: [], nextPageParams: nil)
             }
         )
     }

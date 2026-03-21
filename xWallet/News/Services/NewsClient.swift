@@ -9,6 +9,12 @@ import Foundation
 
 struct NewsDataSource: PaginatorDataSource {
     typealias Item = NewsItem
+    let httpClient: any HTTPClientProtocol
+
+    init(httpClient: any HTTPClientProtocol = AppHTTPClient.live) {
+        self.httpClient = httpClient
+    }
+
     func fetchPage(key: String?, pageSize: Int) async throws -> PaginatorPage<NewsItem> {
         var components = URLComponents(string: "https://xwallet-news.avx302.workers.dev/news")!
         var queryItems = [URLQueryItem(name: "limit", value: String(pageSize))]
@@ -19,7 +25,7 @@ struct NewsDataSource: PaginatorDataSource {
         guard let url = components.url else {
             throw PaginatorError.invalidKey
         }
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await httpClient.data(from: url)
         guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
             throw PaginatorError.network(
                 "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)"
@@ -65,9 +71,9 @@ typealias NewsPaginator = CallbackPaginator<
 // MARK: - Factory
 
 enum NewsPaginatorFactory {
-    static func make() -> NewsPaginator {
+    static func make(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> NewsPaginator {
         CallbackPaginator(
-            dataSource: NewsDataSource(),
+            dataSource: NewsDataSource(httpClient: httpClient),
             validator: DefaultPageValidator(),
             cache: PaginatorInMemoryCache(),
             store: try? FileBasedStore(namespace: "news"),

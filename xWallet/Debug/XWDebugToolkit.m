@@ -27,12 +27,6 @@ static const NSInteger kWindowSize = 120; // ~2 seconds at 60fps
 
 @implementation XWFPSMonitor
 
-+ (void)load {
-    dispatch_async(dispatch_get_main_queue(), ^{
-        [[XWFPSMonitor shared] startMonitoring];
-    });
-}
-
 + (instancetype)shared {
     static XWFPSMonitor *instance;
     static dispatch_once_t onceToken;
@@ -53,9 +47,27 @@ static const NSInteger kWindowSize = 120; // ~2 seconds at 60fps
     return self;
 }
 
+- (void)resetMetrics {
+    memset(_ringBuffer, 0, sizeof(_ringBuffer));
+    _head = 0;
+    _count = 0;
+    _runningSum = 0;
+    self.lastTimestamp = 0;
+    self.droppedFrames = 0;
+    self.totalFrames = 0;
+}
+
 - (void)startMonitoring {
+    if (self.displayLink != nil) { return; }
+    [self resetMetrics];
     self.displayLink = [CADisplayLink displayLinkWithTarget:self selector:@selector(tick:)];
     [self.displayLink addToRunLoop:[NSRunLoop mainRunLoop] forMode:NSRunLoopCommonModes];
+}
+
+- (void)stopMonitoring {
+    [self.displayLink invalidate];
+    self.displayLink = nil;
+    [self resetMetrics];
 }
 
 - (void)tick:(CADisplayLink *)link {

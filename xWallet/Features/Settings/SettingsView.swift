@@ -29,9 +29,6 @@ struct SettingsView: View {
         }
         .background(Color(hex: "050505"))
         .preferredColorScheme(.dark)
-        .onShake {
-            print("shaked")
-        }
         .sheet(item: $store.scope(state: \.chainManagement, action: \.chainManagement)) { chainStore in
             NavigationStack {
                 ChainManagementView(store: chainStore)

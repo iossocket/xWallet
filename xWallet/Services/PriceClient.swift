@@ -74,6 +74,7 @@ protocol PriceProvider: Sendable {
 
 struct CoinGeckoPriceProvider: PriceProvider {
     let resolver: PriceIdResolver
+    let httpClient: any HTTPClientProtocol
 
     func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {
         let mapped = await resolver.resolve(chainId: chainId, symbols: symbols)
@@ -88,7 +89,7 @@ struct CoinGeckoPriceProvider: PriceProvider {
         ]
         guard let url = components?.url else { throw PriceError.invalidURL }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await httpClient.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             throw PriceError.httpError
@@ -114,6 +115,7 @@ private struct CoinGeckoPrice: Decodable {
 
 struct DefiLlamaPriceProvider: PriceProvider {
     let resolver: PriceIdResolver
+    let httpClient: any HTTPClientProtocol
 
     func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {
         let mapped = await resolver.resolve(chainId: chainId, symbols: symbols)
@@ -125,7 +127,7 @@ struct DefiLlamaPriceProvider: PriceProvider {
             throw PriceError.invalidURL
         }
 
-        let (data, response) = try await URLSession.shared.data(from: url)
+        let (data, response) = try await httpClient.data(from: url)
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             throw PriceError.httpError
@@ -167,9 +169,23 @@ struct PriceClient {
 
 extension PriceClient: DependencyKey {
     static var liveValue: PriceClient {
+        live()
+    }
+
+    static var testValue: PriceClient {
+        PriceClient(
+            fetchPrices: { _, symbols in
+                Dictionary(uniqueKeysWithValues: symbols.map { ($0, 1.0) })
+            }
+        )
+    }
+}
+
+extension PriceClient {
+    static func live(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> PriceClient {
         let resolver: PriceIdResolver = StaticPriceIdResolver()
-        let primary: PriceProvider = CoinGeckoPriceProvider(resolver: resolver)
-        let fallback: PriceProvider = DefiLlamaPriceProvider(resolver: resolver)
+        let primary: PriceProvider = CoinGeckoPriceProvider(resolver: resolver, httpClient: httpClient)
+        let fallback: PriceProvider = DefiLlamaPriceProvider(resolver: resolver, httpClient: httpClient)
         let cache = PriceCache()
 
         return PriceClient(
@@ -188,14 +204,6 @@ extension PriceClient: DependencyKey {
 
                 await cache.set(key: cacheKey, prices: prices)
                 return prices
-            }
-        )
-    }
-
-    static var testValue: PriceClient {
-        PriceClient(
-            fetchPrices: { _, symbols in
-                Dictionary(uniqueKeysWithValues: symbols.map { ($0, 1.0) })
             }
         )
     }

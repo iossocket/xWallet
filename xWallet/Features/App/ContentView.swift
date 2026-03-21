@@ -27,5 +27,10 @@ struct ContentView: View {
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             .tag(Tab.profile)
         }
+        #if DEBUG
+        .onShake {
+            XWDebugOverlay.shared.toggle()
+        }
+        #endif
     }
 }
