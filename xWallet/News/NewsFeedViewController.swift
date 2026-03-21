@@ -24,6 +24,7 @@ class NewsFeedViewController: UIViewController {
     private let repository = NewsRepository()
     
     override func viewDidLoad() {
+        super.viewDidLoad()
         view.backgroundColor = UIColor(Color.xBg0)
         setupCollectionView()
         setupDataSource()
@@ -31,6 +32,7 @@ class NewsFeedViewController: UIViewController {
         observeRepository()
 
         Task {
+//            try await Task.sleep(nanoseconds: 1_000_000_000)
             await repository.loadFirstPage()
         }
     }
@@ -41,16 +43,14 @@ class NewsFeedViewController: UIViewController {
             _ = repository.isRefreshing
             _ = repository.error
         } onChange: { [weak self] in
-            DispatchQueue.main.async { [weak self] in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
+                self.observeRepository()
                 self.applySnapshot(items: self.repository.items, animated: true)
 
                 if !self.repository.isRefreshing {
                     self.collectionView.refreshControl?.endRefreshing()
                 }
-
-                // Re-subscribe before returning so no state change is missed
-                self.observeRepository()
             }
         }
     }
