@@ -158,9 +158,10 @@ struct Account {
                 let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
                 let accountType = state.selectedStarknetAccountType
                 let chainId = state.selectedStarknetChainId
+                let config = chain == .evm ? ChainConfig.evm : ChainConfig.starknet(accountType: accountType ?? StarknetAccountType.argent, chainId: chainId ?? StarknetChainId.mainnet)
                 return .run { [walletClient] send in
                     await send(.importPrivateKeyResponse(
-                        Result { try await walletClient.importPrivateKey(hex, name, chain, accountType, chainId) }
+                        Result { try await walletClient.importPrivateKey(hex, name, config) }
                     ))
                 }
             case .importPrivateKeyResponse(.success(let identity)):

@@ -39,6 +39,10 @@ struct Settings {
             case .walletListTapped:
                 state.walletList = WalletList.State()
                 return .none
+            case .walletList(.presented(.addAccountTapped)):
+                state.walletList = nil
+                state.importAccount = Account.State()
+                return .none
             case .importAccount(.presented(.createWalletResponse(.success))),
                  .importAccount(.presented(.importMnemonicResponse(.success))),
                  .importAccount(.presented(.importPrivateKeyResponse(.success))):
