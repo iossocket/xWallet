@@ -6,10 +6,15 @@
 //
 
 import Foundation
-import Observation
 
-@Observable
+@MainActor
+protocol NewsRepositoryDelegate: AnyObject {
+    func newsRepositoryDidUpdate(_ repository: NewsRepository)
+}
+
+@MainActor
 final class NewsRepository {
+    weak var delegate: NewsRepositoryDelegate?
     private(set) var items: [NewsItem] = []
     private(set) var isLoading = false
     private(set) var isRefreshing = false
@@ -22,16 +27,18 @@ final class NewsRepository {
     init(paginator: any Paginator<NewsItem> = NewsPaginatorFactory.make()) {
         self.paginator = paginator
     }
-    
+
     func loadFirstPage() async {
         guard items.isEmpty, !isLoading else { return }
         isLoading = true
+        notifyDelegate()
         await fetchPage(key: nil, append: false)
     }
     
     func refresh() async {
         isRefreshing = true
         error = nil
+        notifyDelegate()
         await paginator.clear(key: nil)
         await fetchPage(key: nil, append: false)
     }
@@ -39,7 +46,12 @@ final class NewsRepository {
     func loadMore() async {
         guard hasMore, !isLoading, let key = nextKey else { return }
         isLoading = true
+        notifyDelegate()
         await fetchPage(key: key, append: true)
+    }
+    
+    func clearCache() async {
+        await paginator.clearAll()
     }
     
     // MARK: - Private
@@ -64,5 +76,10 @@ final class NewsRepository {
         }
         isLoading = false
         isRefreshing = false
+        notifyDelegate()
+    }
+
+    private func notifyDelegate() {
+        delegate?.newsRepositoryDidUpdate(self)
     }
 }

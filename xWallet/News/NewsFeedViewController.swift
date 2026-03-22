@@ -26,32 +26,17 @@ class NewsFeedViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(Color.xBg0)
+        
+        
         setupCollectionView()
         setupDataSource()
         setupRefreshControl()
-        observeRepository()
+        repository.delegate = self
+        render(animated: false)
 
         Task {
-//            try await Task.sleep(nanoseconds: 1_000_000_000)
+//            await repository.clearCache()
             await repository.loadFirstPage()
-        }
-    }
-    
-    private func observeRepository() {
-        withObservationTracking {
-            _ = repository.items
-            _ = repository.isRefreshing
-            _ = repository.error
-        } onChange: { [weak self] in
-            Task { @MainActor [weak self] in
-                guard let self else { return }
-                self.observeRepository()
-                self.applySnapshot(items: self.repository.items, animated: true)
-
-                if !self.repository.isRefreshing {
-                    self.collectionView.refreshControl?.endRefreshing()
-                }
-            }
         }
     }
 
@@ -143,6 +128,14 @@ class NewsFeedViewController: UIViewController {
         Task { await repository.refresh() }
     }
 
+    private func render(animated: Bool) {
+        applySnapshot(items: repository.items, animated: animated)
+
+        if !repository.isRefreshing {
+            collectionView.refreshControl?.endRefreshing()
+        }
+    }
+
     private func applySnapshot(items: [NewsItem], animated: Bool) {
         var snapshot = NSDiffableDataSourceSnapshot<NewsFeedSection, NewsItem>()
         snapshot.appendSections(NewsFeedSection.allCases)
@@ -155,6 +148,14 @@ class NewsFeedViewController: UIViewController {
         }
 
         dataSource.apply(snapshot, animatingDifferences: animated)
+    }
+}
+
+// MARK: - NewsRepositoryDelegate
+
+extension NewsFeedViewController: NewsRepositoryDelegate {
+    func newsRepositoryDidUpdate(_ repository: NewsRepository) {
+        render(animated: true)
     }
 }
 
