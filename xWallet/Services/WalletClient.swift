@@ -12,10 +12,15 @@ import MultiChainCore
 import EthereumKit
 import GRDB
 
+enum ChainConfig {
+    case evm
+    case starknet(accountType: StarknetAccountType, chainId: StarknetChainId)
+}
+
 struct WalletClient {
     var createWallet: @Sendable (String?, ChainType) async throws -> WalletIdentity
     var importMnemonic: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
-    var importPrivateKey: @Sendable (String, String?, ChainType, StarknetAccountType?, StarknetChainId?) async throws -> WalletIdentity
+    var importPrivateKey: @Sendable (String, String?, ChainConfig) async throws -> WalletIdentity
     var listWallets: @Sendable () async throws -> [WalletIdentity]
     var switchWallet: @Sendable (UUID) async throws -> Void
     var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
@@ -62,22 +67,40 @@ extension WalletClient: DependencyKey {
                 try store.setActiveWallet(identity.id)
                 return identity
             },
-            importPrivateKey: { hex, name, chain, type, chainId in
+            importPrivateKey: { hex, name, config in
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
-                let address = try deriveAddressFromPrivateKey(pkData, chain: chain, accountType: type)
-                // same private key will generate multipy same records
-                let identity = WalletIdentity(
-                    id: UUID(),
-                    name: name ?? defaultWalletName(chain: chain),
-                    sourceType: .privateKey,
-                    chainType: chain,
-                    createdAt: Date(),
-                    derivedAddresses: [address]
-                )
-                try store.saveSecret(.privateKey(pkData, chain), for: identity.id)
-                try store.saveIdentity(identity)
-                try store.setActiveWallet(identity.id)
-                return identity
+                switch config {
+                case .evm:
+                    let address = try deriveAddressFromPrivateKey(pkData, chain: .evm)
+                    let identity = WalletIdentity(
+                        id: UUID(),
+                        name: name ?? defaultWalletName(chain: .evm),
+                        sourceType: .privateKey,
+                        chainType: .evm,
+                        createdAt: Date(),
+                        derivedAddresses: [address]
+                    )
+                    try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
+                    try store.saveIdentity(identity)
+                    try store.setActiveWallet(identity.id)
+                    return identity
+                case .starknet(let accountType, let chainId):
+                    let address = try deriveAddressFromPrivateKey(pkData, chain: .starknet, accountType: accountType)
+                    let identity = WalletIdentity(
+                        id: UUID(),
+                        name: name ?? defaultWalletName(chain: .evm),
+                        sourceType: .privateKey,
+                        chainType: .starknet,
+                        createdAt: Date(),
+                        chainId: chainId.rawValue,
+                        derivedAddresses: [address]
+                    )
+                    try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
+                    try store.saveIdentity(identity)
+                    try store.setActiveWallet(identity.id)
+                    return identity
+                }
+                
             },
             listWallets: {
                 try store.listIdentities()
@@ -147,7 +170,7 @@ extension WalletClient: DependencyKey {
         return WalletClient(
             createWallet: { _, _ in testIdentity },
             importMnemonic: { _, _, _ in testIdentity },
-            importPrivateKey: { _, _, _, _, _ in testIdentity },
+            importPrivateKey: { _, _, _ in testIdentity },
             listWallets: { [testIdentity] },
             switchWallet: { _ in },
             activeEvmAccount: { _ in throw WalletError.notFound },
