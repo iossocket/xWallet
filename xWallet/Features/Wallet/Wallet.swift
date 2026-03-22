@@ -193,6 +193,12 @@ struct Wallet {
 // MARK: - State helpers
 
 extension Wallet.State {
+    var isDashboardLoading: Bool {
+        guard activeIdentity?.primaryAddress != nil else { return false }
+        guard errorMessage == nil else { return false }
+        return isLoadingAllChains || totalUsdValue == nil || currentChainUsdValue == nil
+    }
+
     /// Rebuild assets, totalUsdValue, currentChainUsdValue from chainBalances + prices.
     mutating func rebuildAssets() {
         let currentChainId = String(currentChain.chainId)
@@ -286,4 +292,3 @@ private func formatUsd(_ value: Double) -> String {
     formatter.minimumFractionDigits = 2
     return formatter.string(from: NSNumber(value: value)) ?? "$0.00"
 }
-

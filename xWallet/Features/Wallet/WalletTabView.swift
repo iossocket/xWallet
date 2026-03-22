@@ -38,6 +38,7 @@ struct WalletTabView: View {
                         // Dashboard ring (Dashboard Core)
                         DashboardRingView(
                             showBalance: store.showBalance,
+                            isLoading: store.isDashboardLoading,
                             currentChainName: store.currentChain.name,
                             totalUsdValue: store.totalUsdValue,
                             currentChainUsdValue: store.currentChainUsdValue
