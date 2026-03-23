@@ -22,7 +22,7 @@ struct Wallet {
         @Presents var history: History.State?
         @Presents var receive: Receive.State?
         @Presents var send: Send.State?
-        @Shared(.currentChain) var currentChain: EvmChainRecord
+        @Shared(.currentChain) var currentChain: Chain
         @Shared(.activeIdentity) var activeIdentity: WalletIdentity?
         var assets: IdentifiedArrayOf<AssetItem> = []
         var chainBalances: [ChainBalance] = []
@@ -32,18 +32,18 @@ struct Wallet {
         var prices: [String: Double] = [:]
         var showBalance = true
         var totalUsdValue: String?
-        var supportedChains: [EvmChainRecord] = []
+        var supportedChains: [Chain] = []
         var viewMode: ViewMode = .allChains
     }
 
     enum Action {
         case allBalancesResponse(Result<[ChainBalance], Error>)
-        case chainChanged(EvmChainRecord)
+        case chainChanged(Chain)
         case fetchAllBalances
         case fetchPrices
         case history(PresentationAction<History.Action>)
         case historyButtonTapped
-        case loadSupportedChainsResponse(Result<[EvmChainRecord], Error>)
+        case loadSupportedChainsResponse(Result<[Chain], Error>)
         case onAppear
         case pricesResponse(Result<[String: Double], Error>)
         case receive(PresentationAction<Receive.Action>)
@@ -59,7 +59,7 @@ struct Wallet {
         case balanceRequest
     }
 
-    @Dependency(\.balanceFetcher) var balanceFetcher
+    @Dependency(\.balanceClient) var balanceClient
     @Dependency(\.chainRegistry) var chainRegistry
     @Dependency(\.priceClient) var priceClient
 
@@ -83,9 +83,9 @@ struct Wallet {
                 state.isLoadingAllChains = true
                 state.errorMessage = nil
                 let chains = state.supportedChains
-                return .run { [balanceFetcher] send in
+                return .run { [balanceClient] send in
                     await send(.allBalancesResponse(
-                        Result { try await balanceFetcher.fetchBalances(identity, chains) }
+                        Result { try await balanceClient.fetchBalances(identity, chains) }
                     ))
                 }.cancellable(id: CancelID.balanceRequest, cancelInFlight: true)
 
@@ -125,12 +125,12 @@ struct Wallet {
 
             case .loadSupportedChainsResponse(.success(let chains)):
                 state.supportedChains = chains.isEmpty ? [EvmChain.sepolia, EvmChain.mainnet].map {
-                    $0.toRecord()
+                    $0.toChain()
                 } : chains
                 return .send(.refreshButtonTapped)
 
             case .loadSupportedChainsResponse(.failure):
-                state.supportedChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toRecord() }
+                state.supportedChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toChain() }
                 return .send(.refreshButtonTapped)
 
             case .refreshButtonTapped:
@@ -201,7 +201,7 @@ extension Wallet.State {
 
     /// Rebuild assets, totalUsdValue, currentChainUsdValue from chainBalances + prices.
     mutating func rebuildAssets() {
-        let currentChainId = String(currentChain.chainId)
+        let currentChainId = currentChain.chainId
         let visibleBalances = chainBalances.filter { $0.chainId == currentChainId }
 
         var items: [AssetItem] = []

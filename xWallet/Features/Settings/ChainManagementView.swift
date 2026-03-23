@@ -63,7 +63,7 @@ struct ChainManagementView: View {
         }
     }
 
-    private func chainRow(_ chain: EvmChainRecord) -> some View {
+    private func chainRow(_ chain: Chain) -> some View {
         let isEnabled = chain.enabled
 
         return Button {

@@ -10,7 +10,11 @@ import Foundation
 
 struct ChainDataSource {
     private let dbQueue: DatabaseQueue
-    
+
+    init(dbQueue: DatabaseQueue) {
+        self.dbQueue = dbQueue
+    }
+
     func listChains() async throws -> [Chain] {
         try await dbQueue.read { db in
             try Chain.fetchAll(db)

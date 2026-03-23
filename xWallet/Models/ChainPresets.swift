@@ -20,12 +20,12 @@ enum ChainPresets {
 
     /// Returns preset chains with enabled status
     /// Mainnet and Sepolia are enabled by default
-    static func presetsWithEnabledStatus() -> [EvmChainRecord] {
+    static func presetsWithEnabledStatus() -> [Chain] {
         allPresets.map { chain in
             let isEnabled = chain.chainId == 1 || chain.chainId == 11_155_111  // Mainnet or Sepolia
-            return EvmChainRecord(
+            return Chain(
                 id: chain.id,
-                chainId: chain.chainId,
+                chainId: String(chain.chainId),
                 name: chain.name,
                 rpcURL: chain.rpcURL.absoluteString,
                 isTestnet: chain.isTestnet,
@@ -36,7 +36,7 @@ enum ChainPresets {
             )
         }
     }
-    
+
     static let starknetChains: [Starknet] = [
         .mainnet,
         .sepolia

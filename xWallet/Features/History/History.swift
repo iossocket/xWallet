@@ -12,7 +12,7 @@ struct History {
     @ObservableState
     struct State: Equatable {
         var address: String?
-        var chain: EvmChainRecord
+        var chain: Chain
         var errorMessage: String?
         var hasMore = true
         var isLoading = false

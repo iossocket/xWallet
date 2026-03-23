@@ -14,8 +14,8 @@ import Foundation
 @MainActor
 struct HistoryTests {
 
-    private static let testChain = EvmChainRecord(
-        id: "sepolia", chainId: 11155111, name: "Sepolia",
+    private static let testChain = Chain(
+        id: "sepolia", chainId: "11155111", name: "Sepolia",
         rpcURL: "https://rpc.sepolia.org", isTestnet: true,
         symbol: "ETH", decimals: 18,
         explorerURL: "https://sepolia.etherscan.io", enabled: true
@@ -33,7 +33,7 @@ struct HistoryTests {
         timestamp: Date(timeIntervalSince1970: 1_700_000_000),
         isOutgoing: true,
         status: .success,
-        chainId: 11155111,
+        chainId: "11155111",
         blockNumber: 100,
         method: nil
     )
@@ -93,7 +93,7 @@ struct HistoryTests {
             timestamp: Date(timeIntervalSince1970: 1_699_999_000),
             isOutgoing: false,
             status: .success,
-            chainId: 11155111,
+            chainId: "11155111",
             blockNumber: 98,
             method: nil
         )
@@ -179,7 +179,7 @@ struct HistoryTests {
             timestamp: Date(timeIntervalSince1970: 1_700_001_000),
             isOutgoing: false,
             status: .success,
-            chainId: 11155111,
+            chainId: "11155111",
             blockNumber: 101,
             method: nil
         )

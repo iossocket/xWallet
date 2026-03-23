@@ -20,7 +20,7 @@ struct ChainManagement {
     @ObservableState
     struct State: Equatable {
         @Presents var chainDetail: ChainDetail.State?
-        var chains: [EvmChainRecord] = []
+        var chains: [Chain] = []
         var isLoading = false
         var errorMessage: String?
     }
@@ -28,11 +28,11 @@ struct ChainManagement {
     enum Action {
         case chainDetail(PresentationAction<ChainDetail.Action>)
         case onAppear
-        case loadChainsResponse(Result<[EvmChainRecord], Error>)
-        case batchInsertChains(Result<[EvmChainRecord], Error>)
-        case chainRowTapped(EvmChainRecord)
-        case chainToggled(EvmChainRecord, Bool)
-        case toggleResponse(Result<EvmChainRecord?, Error>)
+        case loadChainsResponse(Result<[Chain], Error>)
+        case batchInsertChains(Result<[Chain], Error>)
+        case chainRowTapped(Chain)
+        case chainToggled(Chain, Bool)
+        case toggleResponse(Result<Chain?, Error>)
     }
 
     @Dependency(\.chainRegistry) var chainRegistry
@@ -116,13 +116,13 @@ struct ChainManagement {
 struct ChainDetail {
     @ObservableState
     struct State: Equatable {
-        var chain: EvmChainRecord
+        var chain: Chain
         var customRpcURL: String
         var isTestingConnection = false
         var connectionStatus: ConnectionStatus = .idle
         var isSaving = false
 
-        init(chain: EvmChainRecord) {
+        init(chain: Chain) {
             self.chain = chain
             self.customRpcURL = chain.rpcURL
         }
@@ -133,7 +133,7 @@ struct ChainDetail {
         case testConnectionTapped
         case connectionResponse(Result<Int, Error>)
         case saveButtonTapped
-        case saveResponse(Result<EvmChainRecord?, Error>)
+        case saveResponse(Result<Chain?, Error>)
     }
 
     @Dependency(\.evmProvider) var evmProvider
@@ -172,7 +172,7 @@ struct ChainDetail {
 
             case .connectionResponse(.success(let chainId)):
                 state.isTestingConnection = false
-                if chainId == Int(state.chain.chainId) {
+                if String(chainId) == state.chain.chainId {
                     state.connectionStatus = .connected
                 } else {
                     state.connectionStatus = .failed("Chain ID mismatch: expected \(state.chain.chainId), got \(chainId)")

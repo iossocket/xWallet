@@ -21,15 +21,15 @@ protocol EvmProviderProtocol: Sendable {
 }
 
 struct EvmProviderWrapper: EvmProviderProtocol {
-    let chain: EvmChainRecord
+    let chain: Chain
     let provider: EthereumProvider
 
-    init(chain: EvmChainRecord) {
+    init(chain: Chain) {
         self.chain = chain
-        self.provider = EthereumProvider(chain: chain.toChain())
+        self.provider = EthereumProvider(chain: chain.toEvmChain())
     }
 
-    var chainId: UInt64 { chain.chainId }
+    var chainId: UInt64 { chain.numericChainId ?? 0 }
 
     func send<R: Decodable>(request: ChainRequest) async throws -> R {
         try await provider.send(request: request)
@@ -53,7 +53,7 @@ struct EvmProviderWrapper: EvmProviderProtocol {
 }
 
 struct EvmProviderClient {
-    var provider: @Sendable (EvmChainRecord) -> any EvmProviderProtocol
+    var provider: @Sendable (Chain) -> any EvmProviderProtocol
 }
 
 extension EvmProviderClient: DependencyKey {
@@ -65,7 +65,7 @@ extension EvmProviderClient: DependencyKey {
 
     static var testValue: EvmProviderClient {
         EvmProviderClient { chain in
-            MockEvmProvider(chainId: chain.chainId)
+            MockEvmProvider(chainId: UInt64(chain.chainId)!)
         }
     }
 }

@@ -10,9 +10,9 @@ import EthereumKit
 struct HeaderView: View {
     @Binding var showBalance: Bool
     let totalBalance: String?
-    let currentChain: EvmChainRecord
-    let supportedChains: [EvmChainRecord]
-    let onChainChanged: (EvmChainRecord) -> Void
+    let currentChain: Chain
+    let supportedChains: [Chain]
+    let onChainChanged: (Chain) -> Void
 
     var body: some View {
         HStack {

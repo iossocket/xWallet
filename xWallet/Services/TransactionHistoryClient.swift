@@ -23,7 +23,7 @@ struct HistoryTransaction: Identifiable, Equatable, Hashable, Sendable {
     let timestamp: Date
     let isOutgoing: Bool
     let status: TxStatus
-    let chainId: UInt64
+    let chainId: String
     let blockNumber: Int
     let method: String?
 
@@ -44,7 +44,7 @@ struct HistoryPage: Equatable, Sendable {
 struct TransactionHistoryClient {
     var fetchHistory: @Sendable (
         _ address: String,
-        _ chain: EvmChainRecord,
+        _ chain: Chain,
         _ nextPageParams: [String: String]?
     ) async throws -> HistoryPage
 }
@@ -196,18 +196,18 @@ private struct BlockscoutTx: Decodable {
 // MARK: - Helpers
 
 /// Map EVM chainId to Blockscout API domain.
-func blockscoutDomain(forChainId chainId: UInt64) -> String? {
+func blockscoutDomain(forChainId chainId: String) -> String? {
     switch chainId {
-    case 1:          return "eth.blockscout.com"
-    case 11155111:   return "eth-sepolia.blockscout.com"
-    case 17000:      return "eth-holesky.blockscout.com"
-    case 8453:       return "base.blockscout.com"
-    case 84532:      return "base-sepolia.blockscout.com"
-    case 137:        return "polygon.blockscout.com"
-    case 42161:      return "arbitrum.blockscout.com"
-    case 10:         return "optimism.blockscout.com"
-    case 56:         return "bsc.blockscout.com"
-    default:         return nil
+    case "1":          return "eth.blockscout.com"
+    case "11155111":   return "eth-sepolia.blockscout.com"
+    case "17000":      return "eth-holesky.blockscout.com"
+    case "8453":       return "base.blockscout.com"
+    case "84532":      return "base-sepolia.blockscout.com"
+    case "137":        return "polygon.blockscout.com"
+    case "42161":      return "arbitrum.blockscout.com"
+    case "10":         return "optimism.blockscout.com"
+    case "56":         return "bsc.blockscout.com"
+    default:           return nil
     }
 }
 

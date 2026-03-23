@@ -9,7 +9,7 @@ import SwiftUI
 
 struct HistoryDetailView: View {
     let tx: HistoryTransaction
-    let chain: EvmChainRecord
+    let chain: Chain
 
     @Environment(\.openURL) private var openURL
     @State private var copiedField: String?

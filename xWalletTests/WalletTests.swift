@@ -74,8 +74,8 @@ struct WalletTests {
     func onAppearLoadsChainsAndRefreshes() async {
         @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
 
-        let sepoliaRecord = EvmChainRecord(
-            id: "sepolia", chainId: 11155111, name: "Sepolia",
+        let sepoliaRecord = Chain(
+            id: "sepolia", chainId: "11155111", name: "Sepolia",
             rpcURL: "https://rpc.sepolia.org", isTestnet: true,
             symbol: "ETH", decimals: 18, explorerURL: nil, enabled: true
         )
@@ -84,7 +84,7 @@ struct WalletTests {
             Wallet()
         } withDependencies: {
             $0.chainRegistry.listEnabledChains = { [sepoliaRecord] }
-            $0.balanceFetcher.fetchBalances = { _, _ in
+            $0.balanceClient.fetchBalances = { _, _ in
                 [ChainBalance(
                     chainId: "11155111", chainType: .evm, chainName: "Sepolia",
                     symbol: "ETH", decimals: 18,
@@ -143,13 +143,13 @@ struct WalletTests {
     func onAppearLoadChainsFailureFallsBackAndRefreshes() async {
         @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
 
-        let fallbackChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toRecord() }
+        let fallbackChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toChain() }
 
         let store = TestStore(initialState: Wallet.State()) {
             Wallet()
         } withDependencies: {
             $0.chainRegistry.listEnabledChains = { throw NSError(domain: "test", code: 1) }
-            $0.balanceFetcher.fetchBalances = { _, _ in
+            $0.balanceClient.fetchBalances = { _, _ in
                 [
                     ChainBalance(
                         chainId: "11155111", chainType: .evm, chainName: "Sepolia",
@@ -238,8 +238,8 @@ struct WalletTests {
     func viewModeToggledBackToAllChainsTriggersFetch() async {
         @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
 
-        let sepoliaRecord = EvmChainRecord(
-            id: "sepolia", chainId: 11155111, name: "Sepolia",
+        let sepoliaRecord = Chain(
+            id: "sepolia", chainId: "11155111", name: "Sepolia",
             rpcURL: "https://rpc.sepolia.org", isTestnet: true,
             symbol: "ETH", decimals: 18, explorerURL: nil, enabled: true
         )
@@ -250,7 +250,7 @@ struct WalletTests {
         let store = TestStore(initialState: state) {
             Wallet()
         } withDependencies: {
-            $0.balanceFetcher.fetchBalances = { _, _ in
+            $0.balanceClient.fetchBalances = { _, _ in
                 [ChainBalance(
                     chainId: "11155111", chainType: .evm, chainName: "Sepolia",
                     symbol: "ETH", decimals: 18,
@@ -325,8 +325,8 @@ struct WalletTests {
             decimals: 18, nativeBalance: BigUInt("2000000000000000000"), tokens: []
         )
 
-        let mainnetRecord = EvmChainRecord(
-            id: "mainnet", chainId: 1, name: "Ethereum Mainnet",
+        let mainnetRecord = Chain(
+            id: "mainnet", chainId: "1", name: "Ethereum Mainnet",
             rpcURL: "https://rpc.mainnet.org", isTestnet: false,
             symbol: "ETH", decimals: 18, explorerURL: nil, enabled: true
         )

@@ -12,9 +12,9 @@ import BigInt
 import Dependencies
 
 struct ERC20Client {
-    var balanceOf: @Sendable (String, ERC20Token, EvmChainRecord) async throws -> BigUInt
+    var balanceOf: @Sendable (String, ERC20Token, Chain) async throws -> BigUInt
     var transfer: @Sendable (String, BigUInt, ERC20Token, EthereumAccount) async throws -> String
-    var tokenInfo: @Sendable (String, EvmChainRecord) async throws -> ERC20Token
+    var tokenInfo: @Sendable (String, Chain) async throws -> ERC20Token
 }
 
 extension ERC20Client: DependencyKey {
@@ -26,7 +26,7 @@ extension ERC20Client: DependencyKey {
                     throw ERC20Error.invalidAddress
                 }
 
-                let provider = EthereumProvider(chain: chain.toChain())
+                let provider = EthereumProvider(chain: chain.toEvmChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
                     abiJson: ERC20ABI.evm,
@@ -68,7 +68,7 @@ extension ERC20Client: DependencyKey {
                 guard let contractAddr = EthereumAddress(contractAddress) else {
                     throw ERC20Error.invalidAddress
                 }
-                let provider = EthereumProvider(chain: chain.toChain())
+                let provider = EthereumProvider(chain: chain.toEvmChain())
                 let contract = try EthereumContract(
                     address: contractAddr,
                     abiJson: ERC20ABI.evm,

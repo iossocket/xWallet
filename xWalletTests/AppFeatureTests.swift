@@ -34,7 +34,7 @@ struct AppFeatureTests {
 
     @Test
     func initializeChainsWhenDatabaseNotEmpty() async {
-        let existingChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toRecord() }
+        let existingChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toChain() }
 
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()

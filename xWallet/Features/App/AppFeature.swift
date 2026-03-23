@@ -39,7 +39,7 @@ struct AppFeature {
         case activeIdentityCheck
         case activeIdentityResponse(Result<WalletIdentity, Error>)
         case initializeChains
-        case initializeChainsResponse(Result<[EvmChainRecord], Error>)
+        case initializeChainsResponse(Result<[Chain], Error>)
     }
 
     @Dependency(\.walletClient) var walletClient
@@ -121,9 +121,9 @@ struct AppFeature {
     }
 }
 
-extension SharedKey where Self == InMemoryKey<EvmChainRecord>.Default {
+extension SharedKey where Self == InMemoryKey<Chain>.Default {
     static var currentChain: Self {
-        Self[.inMemory("currentChain"), default: EvmChain.sepolia.toRecord()]
+        Self[.inMemory("currentChain"), default: EvmChain.sepolia.toChain()]
     }
 }
 

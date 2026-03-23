@@ -36,7 +36,7 @@ struct SendTests {
             gasLimit: 21_000
         )
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             toAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             amount: "0.01",
             phase: .estimating
@@ -58,7 +58,7 @@ struct SendTests {
     @Test
     func estimateGasFailure() async {
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             phase: .estimating
         )
         let store = TestStore(initialState: state) {
@@ -74,7 +74,7 @@ struct SendTests {
     @Test
     func estimateGasWithInvalidAddress() async {
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             toAddress: "not-an-address",
             amount: "1.0"
         )
@@ -90,7 +90,7 @@ struct SendTests {
     @Test
     func estimateGasWithInvalidAmount() async {
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             toAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
             amount: "invalid"
         )
@@ -107,7 +107,7 @@ struct SendTests {
     func sendSuccessEntersPendingPhase() async {
         let txHash = "0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             phase: .sending
         )
         let store = TestStore(initialState: state) {
@@ -125,7 +125,7 @@ struct SendTests {
     @Test
     func sendFailure() async {
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             phase: .sending
         )
         let store = TestStore(initialState: state) {
@@ -141,7 +141,7 @@ struct SendTests {
     func pollReceiptMinedTransition() async {
         let txHash = "0xabc"
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             phase: .pending(txHash)
         )
         let store = TestStore(initialState: state) {
@@ -161,7 +161,7 @@ struct SendTests {
 
         let txHash = "0xabc"
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             phase: .pending(txHash)
         )
         let store = TestStore(initialState: state) {
@@ -176,7 +176,7 @@ struct SendTests {
     @Test
     func dismissErrorResetsToInput() async {
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             errorMessage: "some error",
             phase: .failure("some error")
         )
@@ -213,7 +213,7 @@ struct SendTests {
             color: .blue
         )
         let state = Send.State(
-            chain: EvmChain.sepolia.toRecord(),
+            chain: EvmChain.sepolia.toChain(),
             selectedAsset: ethAsset,
             amount: "0.5",
             gasEstimate: "21000"

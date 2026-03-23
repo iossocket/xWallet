@@ -10,23 +10,9 @@ import GRDB
 import EthereumKit
 import StarknetKit
 
-struct EvmChainRecord: Codable, FetchableRecord, PersistableRecord, Sendable, Equatable {
-    static let databaseTableName = "evm_chain"
-    
-    let id: String
-    let chainId: UInt64
-    let name: String
-    let rpcURL: String
-    let isTestnet: Bool
-    let symbol: String
-    let decimals: Int
-    let explorerURL: String?
-    let enabled: Bool
-}
-
 struct Chain: Codable, FetchableRecord, PersistableRecord, Sendable, Equatable {
     static let databaseTableName = "chains"
-    
+
     let id: String
     let chainId: String
     let name: String
@@ -40,7 +26,7 @@ struct Chain: Codable, FetchableRecord, PersistableRecord, Sendable, Equatable {
 
 struct Token: Codable, FetchableRecord, PersistableRecord, Sendable, Equatable {
     static let databaseTableName = "erc20_tokens"
-    
+
     let id: String
     let chainId: String
     let name: String
@@ -55,21 +41,29 @@ extension Chain {
         EvmChain(chainId: UInt64(self.chainId)!, name: self.name, rpcURL: URL(string: self.rpcURL)!, isTestnet: self.isTestnet,
                  symbol: self.symbol, decimals: self.decimals, explorerURL: self.explorerURL == nil ? nil : URL(string: self.explorerURL!))
     }
-    
+
     func toStrkChain() -> Starknet {
         Starknet(chainId: Felt(self.chainId)!, name: self.name, rpcURL: URL(string: self.rpcURL)!, isTestnet: self.isTestnet, explorerURL: self.explorerURL == nil ? nil : URL(string: self.explorerURL!))
     }
-}
 
-extension EvmChainRecord {
-    func toChain() -> EvmChain {
-        EvmChain(chainId: self.chainId, name: self.name, rpcURL: URL(string: self.rpcURL)!, isTestnet: self.isTestnet,
-                 symbol: self.symbol, decimals: self.decimals, explorerURL: self.explorerURL == nil ? nil : URL(string: self.explorerURL!))
+    /// Convenience for EVM chains where chainId is numeric
+    var numericChainId: UInt64? {
+        UInt64(chainId)
     }
 }
 
 extension EvmChain {
-    func toRecord() -> EvmChainRecord {
-        EvmChainRecord(id: self.id, chainId: self.chainId, name: self.name, rpcURL: self.rpcURL.absoluteString, isTestnet: self.isTestnet, symbol: self.symbol, decimals: self.decimals, explorerURL: self.explorerURL == nil ? nil : self.explorerURL!.absoluteString, enabled: false)
+    func toChain() -> Chain {
+        Chain(
+            id: self.id,
+            chainId: String(self.chainId),
+            name: self.name,
+            rpcURL: self.rpcURL.absoluteString,
+            isTestnet: self.isTestnet,
+            symbol: self.symbol,
+            decimals: self.decimals,
+            explorerURL: self.explorerURL?.absoluteString,
+            enabled: false
+        )
     }
 }

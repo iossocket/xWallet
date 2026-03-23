@@ -13,7 +13,7 @@ import EthereumKit
 import Foundation
 
 let testChains = [EvmChain.sepolia, EvmChain.mainnet].map { chain in
-    EvmChainRecord(id: chain.id, chainId: chain.chainId, name: chain.name, rpcURL: chain.rpcURL.absoluteString, isTestnet: chain.isTestnet, symbol: chain.symbol, decimals: chain.decimals, explorerURL: chain.explorerURL == nil ? nil : chain.explorerURL!.absoluteString, enabled: true)
+    Chain(id: chain.id, chainId: String(chain.chainId), name: chain.name, rpcURL: chain.rpcURL.absoluteString, isTestnet: chain.isTestnet, symbol: chain.symbol, decimals: chain.decimals, explorerURL: chain.explorerURL == nil ? nil : chain.explorerURL!.absoluteString, enabled: true)
 }
 
 @MainActor
@@ -61,7 +61,7 @@ struct ChainManagementTests {
 
     @Test
     func chainRowTapped() async {
-        let testChain = EvmChain.sepolia.toRecord()
+        let testChain = EvmChain.sepolia.toChain()
         let store = TestStore(initialState: ChainManagement.State()) {
             ChainManagement()
         }
@@ -111,7 +111,7 @@ struct ChainManagementTests {
 struct ChainDetailTests {
     @Test
     func saveButtonSuccess() async {
-        let testChain = EvmChain.sepolia.toRecord()
+        let testChain = EvmChain.sepolia.toChain()
         var state = ChainDetail.State(chain: testChain)
         state.connectionStatus = .connected
         state.customRpcURL = "https://custom-rpc.example.com"
@@ -138,7 +138,7 @@ struct ChainDetailTests {
 
     @Test
     func saveButtonInvalidURL() async {
-        let testChain = EvmChain.sepolia.toRecord()
+        let testChain = EvmChain.sepolia.toChain()
         var state = ChainDetail.State(chain: testChain)
         state.connectionStatus = .connected
         state.customRpcURL = "invalid-url"
