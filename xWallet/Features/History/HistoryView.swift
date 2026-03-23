@@ -10,6 +10,7 @@ import SwiftUI
 
 struct HistoryView: View {
     @Bindable var store: StoreOf<History>
+    @State private var selectedTransaction: HistoryTransaction?
 
     private var isInitialLoading: Bool {
         store.isLoading && store.transactions.isEmpty
@@ -26,7 +27,7 @@ struct HistoryView: View {
                     LazyVStack(spacing: XSpacing.sm) {
                         ForEach(store.transactions) { tx in
                             Button {
-                                store.send(.transactionTapped(tx))
+                                selectedTransaction = tx
                             } label: {
                                 txRow(tx)
                             }
@@ -65,9 +66,7 @@ struct HistoryView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.xBg0)
-        .navigationDestination(
-            item: $store.selectedTransaction.sending(\.setSelectedTransaction)
-        ) { tx in
+        .navigationDestination(item: $selectedTransaction) { tx in
             HistoryDetailView(tx: tx, chain: store.chain)
         }
         .onAppear { store.send(.onAppear) }

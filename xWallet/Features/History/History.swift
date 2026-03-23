@@ -17,7 +17,6 @@ struct History {
         var hasMore = true
         var isLoading = false
         var nextPageParams: [String: String]?
-        var selectedTransaction: HistoryTransaction?
         var transactions: [HistoryTransaction] = []
     }
 
@@ -27,8 +26,6 @@ struct History {
         case onAppear
         case refresh
         case refreshResponse(Result<HistoryPage, Error>)
-        case transactionTapped(HistoryTransaction)
-        case setSelectedTransaction(HistoryTransaction?)
     }
 
     @Dependency(\.transactionHistory) var transactionHistory
@@ -43,14 +40,6 @@ struct History {
             case .loadMore:
                 guard !state.isLoading, state.hasMore else { return .none }
                 return fetchPage(state: &state)
-
-            case .transactionTapped(let tx):
-                state.selectedTransaction = tx
-                return .none
-
-            case .setSelectedTransaction(let tx):
-                state.selectedTransaction = tx
-                return .none
 
             case .historyResponse(.success(let page)):
                 state.isLoading = false
