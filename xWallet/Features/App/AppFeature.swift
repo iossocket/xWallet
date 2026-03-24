@@ -28,7 +28,7 @@ struct AppFeature {
         var selectedTab: Tab = .wallet
         var settings = Settings.State()
         var wallet = Wallet.State()
-        @Shared(.activeIdentity) var activeIdentity: WalletIdentity?
+        @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
     }
     
     enum Action {
@@ -37,7 +37,7 @@ struct AppFeature {
         case tabSelected(Tab)
         case wallet(Wallet.Action)
         case activeIdentityCheck
-        case activeIdentityResponse(Result<WalletIdentity, Error>)
+        case activeIdentityResponse(Result<ActiveWalletIdentitySet, Error>)
         case initializeChains
         case initializeChainsResponse(Result<[Chain], Error>)
     }
@@ -72,18 +72,19 @@ struct AppFeature {
                 return .send(.activeIdentityCheck)
 
             case .account(.onAppear):
-                if let _ = state.account.activeIdentity {
-                    state.launchPhase = .ready
+                if state.account.activeIdentitySet.isEmpty {
+                    return .none
                 }
+                state.launchPhase = .ready
                 return .none
             case .activeIdentityCheck:
                 return .run { send in
                     await send(.activeIdentityResponse(
-                        Result { try await walletClient.activeIdentity() }
+                        Result { try await walletClient.activeIdentitySet() }
                     ))
                 }
             case .activeIdentityResponse(.success(let identity)):
-                state.$activeIdentity.withLock { $0 = identity }
+                state.$activeIdentitySet.withLock { $0 = identity }
                 state.launchPhase = .ready
                 return .none
             case .activeIdentityResponse(.failure):
@@ -127,8 +128,8 @@ extension SharedKey where Self == InMemoryKey<Chain>.Default {
     }
 }
 
-extension SharedKey where Self == InMemoryKey<WalletIdentity?>.Default {
-    static var activeIdentity: Self {
-        Self[.inMemory("activeIdentity"), default: nil]
+extension SharedKey where Self == InMemoryKey<ActiveWalletIdentitySet>.Default {
+    static var activeIdentitySet: Self {
+        Self[.inMemory("activeIdentitySet"), default: ActiveWalletIdentitySet()]
     }
 }

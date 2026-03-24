@@ -66,10 +66,15 @@ struct StarknetBalanceProvider: Sendable {
     private func callBalanceOf(provider: StarknetProvider, token: Felt, account: Felt) async throws -> BigUInt {
         let call = StarknetCall(contractAddress: token, entrypoint: "balance_of", calldata: [account])
         let request = StarknetRequestBuilder.callRequest(call: call, block: .latest)
-        let result: [String] = try await provider.send(request: request)
-        guard result.count >= 2, let low = Felt(result[0]), let high = Felt(result[1]) else {
-            return .zero
+        do {
+            let result: [String] = try await provider.send(request: request)
+            guard result.count >= 2, let low = Felt(result[0]), let high = Felt(result[1]) else {
+                return .zero
+            }
+            return low.bigUIntValue + high.bigUIntValue * (BigUInt(1) << 128)
+        } catch {
+            print("starknet: \(error)")
+            throw error
         }
-        return low.bigUIntValue + high.bigUIntValue * (BigUInt(1) << 128)
     }
 }

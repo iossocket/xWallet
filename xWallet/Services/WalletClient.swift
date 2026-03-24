@@ -18,14 +18,14 @@ enum ChainConfig {
 }
 
 struct WalletClient {
-    var createWallet: @Sendable (String?, ChainType) async throws -> WalletIdentity
-    var importMnemonic: @Sendable (String, String?, ChainType) async throws -> WalletIdentity
-    var importPrivateKey: @Sendable (String, String?, ChainConfig) async throws -> WalletIdentity
+    var createWallet: @Sendable (String?, ChainType) async throws -> WalletIdentity?
+    var importMnemonic: @Sendable (String, String?, ChainType) async throws -> WalletIdentity?
+    var importPrivateKey: @Sendable (String, String?, ChainConfig) async throws -> WalletIdentity?
     var listWallets: @Sendable () async throws -> [WalletIdentity]
-    var switchWallet: @Sendable (UUID) async throws -> Void
+    var switchWallet: @Sendable (UUID) async throws -> WalletIdentity?
     var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
     var activeStarknetAccount: @Sendable () async throws -> StarknetAccount
-    var activeIdentity: @Sendable () async throws -> WalletIdentity
+    var activeIdentitySet: @Sendable () async throws -> ActiveWalletIdentitySet
     var deleteWallet: @Sendable (UUID) async throws -> Void
 }
 
@@ -46,8 +46,7 @@ extension WalletClient: DependencyKey {
                 )
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
                 try store.saveIdentity(identity)
-                try store.setActiveWallet(identity.id)
-                return identity
+                return try store.setActiveWallet(identity.id)
             },
             importMnemonic: { mnemonic, name, chain in
                 guard BIP39.validate(mnemonic) else {
@@ -64,8 +63,7 @@ extension WalletClient: DependencyKey {
                 )
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
                 try store.saveIdentity(identity)
-                try store.setActiveWallet(identity.id)
-                return identity
+                return try store.setActiveWallet(identity.id)
             },
             importPrivateKey: { hex, name, config in
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
@@ -82,8 +80,7 @@ extension WalletClient: DependencyKey {
                     )
                     try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
                     try store.saveIdentity(identity)
-                    try store.setActiveWallet(identity.id)
-                    return identity
+                    return try store.setActiveWallet(identity.id)
                 case .starknet(let accountType, let chainId):
                     let address = try deriveAddressFromPrivateKey(pkData, chain: .starknet, accountType: accountType)
                     let identity = WalletIdentity(
@@ -97,8 +94,7 @@ extension WalletClient: DependencyKey {
                     )
                     try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
                     try store.saveIdentity(identity)
-                    try store.setActiveWallet(identity.id)
-                    return identity
+                    return try store.setActiveWallet(identity.id)
                 }
                 
             },
@@ -141,8 +137,8 @@ extension WalletClient: DependencyKey {
                     return try StarknetAccount(privateKey: Felt(data), address: address, chain: .sepolia)
                 }
             },
-            activeIdentity: {
-                try store.activeIdentity()
+            activeIdentitySet: {
+                try store.activeIdentitySet()
             },
             deleteWallet: { id in
                 try store.deleteSecret(for: id)
@@ -172,10 +168,10 @@ extension WalletClient: DependencyKey {
             importMnemonic: { _, _, _ in testIdentity },
             importPrivateKey: { _, _, _ in testIdentity },
             listWallets: { [testIdentity] },
-            switchWallet: { _ in },
+            switchWallet: { _ in nil },
             activeEvmAccount: { _ in throw WalletError.notFound },
             activeStarknetAccount: { throw WalletError.notFound },
-            activeIdentity: { testIdentity },
+            activeIdentitySet: { ActiveWalletIdentitySet(evm: testIdentity) },
             deleteWallet: { _ in }
         )
     }

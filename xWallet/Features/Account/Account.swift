@@ -34,11 +34,12 @@ struct Account {
         var walletNameInput: String = ""
         var isLoading: Bool = false
         
-        var activeIdentity: WalletIdentity?
+        @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
     }
     
     enum Action {
         case onAppear
+        case didLoadIdentity(ActiveWalletIdentitySet)
         case lockButtonTapped
         case chainSelected(ChainType)
         case starknetAccountTypeSelected(StarknetAccountType?)
@@ -46,20 +47,20 @@ struct Account {
 
         // new wallet
         case createWalletTapped
-        case createWalletResponse(Result<WalletIdentity, Error>)
+        case createWalletResponse(Result<WalletIdentity?, Error>)
         case mnemonicBackupConfirmed
 
         // import mnemonic
         case showImportMnemonicTapped
         case mnemonicInputChanged(String)
         case importMnemonicTapped
-        case importMnemonicResponse(Result<WalletIdentity, Error>)
+        case importMnemonicResponse(Result<WalletIdentity?, Error>)
 
         // import private key
         case showImportPrivateKeyTapped
         case privateKeyInputChanged(String)
         case importPrivateKeyTapped
-        case importPrivateKeyResponse(Result<WalletIdentity, Error>)
+        case importPrivateKeyResponse(Result<WalletIdentity?, Error>)
 
         case walletNameChanged(String)
         case backButtonTapped
@@ -72,10 +73,17 @@ struct Account {
             switch action {
             case .onAppear:
                 return .run { [walletClient] send in
-                    if let identity = try? await walletClient.activeIdentity() {
-                        await send(.createWalletResponse(.success(identity)))
+                    if let identity = try? await walletClient.activeIdentitySet() {
+                        await send(.didLoadIdentity(identity))
                     }
                 }
+            case .didLoadIdentity(let identitySet):
+                state.isLoading = false
+                state.$activeIdentitySet.withLock {
+                    $0 = identitySet
+                }
+                state.isUnlocked = true
+                return .none
             case .chainSelected(let chain):
                 state.selectedChain = chain
                 if chain == .evm {
@@ -102,8 +110,10 @@ struct Account {
                 }
             case .createWalletResponse(.success(let identity)):
                 state.isLoading = false
-                state.activeIdentity = identity
-                if identity.sourceType == .mnemonic && !state.generatedMnemonic.isEmpty {
+                state.$activeIdentitySet.withLock {
+                    $0.updateIdentity(identity: identity)
+                }
+                if identity?.sourceType == .mnemonic && !state.generatedMnemonic.isEmpty {
                     state.onboardingStep = .showMnemonic
                 } else {
                     state.isUnlocked = true
@@ -136,7 +146,9 @@ struct Account {
                 }
             case .importMnemonicResponse(.success(let identity)):
                 state.isLoading = false
-                state.activeIdentity = identity
+                state.$activeIdentitySet.withLock {
+                    $0.updateIdentity(identity: identity)
+                }
                 state.isUnlocked = true
                 state.errorMessage = nil
                 return .none
@@ -166,7 +178,9 @@ struct Account {
                 }
             case .importPrivateKeyResponse(.success(let identity)):
                 state.isLoading = false
-                state.activeIdentity = identity
+                state.$activeIdentitySet.withLock {
+                    $0.updateIdentity(identity: identity)
+                }
                 state.isUnlocked = true
                 state.errorMessage = nil
                 return .none
@@ -179,7 +193,9 @@ struct Account {
                 return .none
             case .lockButtonTapped:
                 state.isUnlocked = false
-                state.activeIdentity = nil
+                state.$activeIdentitySet.withLock {
+                    $0.clear()
+                }
                 return .none
             case .backButtonTapped:
                 state.onboardingStep = .landing

@@ -55,6 +55,47 @@ struct WalletIdentity: Identifiable, Equatable, Sendable, Codable {
     }
 }
 
+struct ActiveWalletIdentitySet: Equatable, Sendable {
+    var evm: WalletIdentity?
+    var starknet: WalletIdentity?
+    
+    var isEmpty: Bool {
+        return evm == nil && starknet == nil
+    }
+    
+    mutating func updateIdentity(identity: WalletIdentity?) {
+        guard let identity = identity else {
+            return
+        }
+        if identity.chainType == .evm {
+            evm = identity
+        } else if identity.chainType == .starknet {
+            starknet = identity
+        }
+    }
+    
+    mutating func clear() {
+        evm = nil
+        starknet = nil
+    }
+    
+    func contains(identityId: UUID) -> Bool {
+        if isEmpty {
+            return false
+        }
+        
+        if let evm = evm, evm.id == identityId {
+            return true
+        }
+        
+        if let starknet = starknet, starknet.id == identityId {
+            return true
+        }
+        
+        return false
+    }
+}
+
 struct WalletIdentityRecord: Codable, FetchableRecord, PersistableRecord, Sendable {
     static let databaseTableName = "wallet_identity"
 
@@ -74,4 +115,10 @@ struct DerivedAddressRecord: Codable, FetchableRecord, PersistableRecord, Sendab
     let chain: String
     let path: String
     let address: String
+}
+
+extension WalletIdentityRecord {
+    func toWalletIdentity() {
+        return 
+    }
 }

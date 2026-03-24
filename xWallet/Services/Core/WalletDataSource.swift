@@ -73,13 +73,33 @@ struct WalletDataSource {
         }
     }
 
-    func setActiveWallet(_ id: UUID) throws {
+    func setActiveWallet(_ id: UUID) throws -> WalletIdentity? {
         try dbQueue.write { db in
-            try WalletIdentityRecord
-                .updateAll(db, Column("isActive").set(to: false))
             try WalletIdentityRecord
                 .filter(Column("id") == id.uuidString)
                 .updateAll(db, Column("isActive").set(to: true))
+            guard let record = try WalletIdentityRecord.filter(Column("id") == id.uuidString).fetchOne(db) else {
+                return nil
+            }
+            
+            let addresses = try DerivedAddressRecord
+                .filter(Column("walletId") == record.id)
+                .fetchAll(db)
+                .map { DerivedAddress(
+                    chain: ChainType(rawValue: $0.chain)!,
+                    path: $0.path,
+                    address: $0.address
+                )}
+            
+            return WalletIdentity(
+                id: UUID(uuidString: record.id)!,
+                name: record.name,
+                sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
+                chainType: ChainType(rawValue: record.chainType)!,
+                createdAt: Date(timeIntervalSince1970: record.createdAt),
+                chainId: record.chainId,
+                derivedAddresses: addresses
+            )
         }
     }
     
@@ -136,6 +156,42 @@ struct WalletDataSource {
                 chainId: record.chainId,
                 derivedAddresses: addresses
             )
+        }
+    }
+    
+    func activeIdentitySet() throws -> ActiveWalletIdentitySet {
+        try dbQueue.read { db in
+            let records = try WalletIdentityRecord
+                .filter(Column("isActive") == true)
+                .fetchAll(db)
+            var evm: WalletIdentity? = nil
+            var starknet: WalletIdentity? = nil
+            for record in records {
+                let addresses = try DerivedAddressRecord
+                    .filter(Column("walletId") == record.id)
+                    .fetchAll(db)
+                    .map { DerivedAddress(
+                        chain: ChainType(rawValue: $0.chain)!,
+                        path: $0.path,
+                        address: $0.address
+                    )}
+                let identity = WalletIdentity(
+                    id: UUID(uuidString: record.id)!,
+                    name: record.name,
+                    sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
+                    chainType: ChainType(rawValue: record.chainType)!,
+                    createdAt: Date(timeIntervalSince1970: record.createdAt),
+                    chainId: record.chainId,
+                    derivedAddresses: addresses
+                )
+                if record.chainType == "evm" {
+                    evm = identity
+                } else if record.chainType == "starknet" {
+                    starknet = identity
+                }
+            }
+            
+            return ActiveWalletIdentitySet(evm: evm, starknet: starknet)
         }
     }
 

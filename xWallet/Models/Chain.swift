@@ -67,3 +67,19 @@ extension EvmChain {
         )
     }
 }
+
+extension Starknet {
+    func toChain() -> Chain {
+        Chain(
+            id: self.id,
+            chainId: self.chainId.description,
+            name: self.name,
+            rpcURL: self.rpcURL.absoluteString,
+            isTestnet: self.isTestnet,
+            symbol: self.symbol,
+            decimals: self.decimals,
+            explorerURL: self.explorerURL?.absoluteString,
+            enabled: false
+        )
+    }
+}

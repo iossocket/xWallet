@@ -13,7 +13,7 @@ struct WalletList {
     @ObservableState
     struct State: Equatable {
         var wallets: [WalletIdentity] = []
-        var activeWalletId: UUID?
+        @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
         var isLoading = false
     }
 
@@ -22,10 +22,9 @@ struct WalletList {
         case walletTapped(UUID)
         case deleteWalletSwiped(UUID)
         case addAccountTapped
-        case switchWalletResponse(Result<UUID, Error>)
+        case switchWalletResponse(Result<WalletIdentity?, Error>)
         case deleteWalletResponse(Result<UUID, Error>)
         case walletsResponse(Result<[WalletIdentity], Error>)
-        case activeIdentityResponse(Result<WalletIdentity, Error>)
     }
 
     @Dependency(\.walletClient) var walletClient
@@ -34,20 +33,26 @@ struct WalletList {
         Reduce { state, action in
             switch action {
             case .walletTapped(let id):
-                guard id != state.activeWalletId else { return .none }
+                if state.activeIdentitySet.contains(identityId: id) {
+                    return .none
+                }
                 return .run { send in
-                    try await walletClient.switchWallet(id)
-                    await send(.switchWalletResponse(.success(id)))
+                    let identity = try await walletClient.switchWallet(id)
+                    await send(.switchWalletResponse(.success(identity)))
                 } catch: { error, send in
                     await send(.switchWalletResponse(.failure(error)))
                 }
-            case .switchWalletResponse(.success(let id)):
-                state.activeWalletId = id
+            case .switchWalletResponse(.success(let identity)):
+                state.$activeIdentitySet.withLock {
+                    $0.updateIdentity(identity: identity)
+                }
                 return .none
             case .switchWalletResponse(.failure):
                 return .none
             case .deleteWalletSwiped(let id):
-                guard id != state.activeWalletId else { return .none }
+                if state.activeIdentitySet.contains(identityId: id) {
+                    return .none
+                }
                 return .run { send in
                     try await walletClient.deleteWallet(id)
                     await send(.deleteWalletResponse(.success(id)))
@@ -67,9 +72,6 @@ struct WalletList {
                     await send(.walletsResponse(Result {
                         try await walletClient.listWallets()
                     }))
-                    await send(.activeIdentityResponse(Result {
-                        try await walletClient.activeIdentity()
-                    }))
                 }
             case .walletsResponse(.success(let wallets)):
                 state.wallets = wallets
@@ -77,11 +79,6 @@ struct WalletList {
                 return .none
             case .walletsResponse(.failure):
                 state.isLoading = false
-                return .none
-            case .activeIdentityResponse(.success(let identity)):
-                state.activeWalletId = identity.id
-                return .none
-            case .activeIdentityResponse(.failure):
                 return .none
             }
         }

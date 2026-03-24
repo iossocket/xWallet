@@ -79,7 +79,7 @@ struct WalletListView: View {
     }
 
     private func walletRow(wallet: WalletIdentity) -> some View {
-        let isActive = wallet.id == store.activeWalletId
+        let isActive = store.activeIdentitySet.contains(identityId: wallet.id)
         return HStack(spacing: XSpacing.md) {
             Image(systemName: isActive ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(isActive ? Color.xAccent : Color.xTextSecondary)

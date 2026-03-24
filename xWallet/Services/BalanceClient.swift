@@ -7,9 +7,10 @@
 
 import Foundation
 import Dependencies
+import StarknetKit
 
 struct BalanceClient {
-    var fetchBalances: @Sendable (_ identity: WalletIdentity, _ chains: [Chain]) async throws -> [ChainBalance]
+    var fetchBalances: @Sendable (_ identity: ActiveWalletIdentitySet, _ chains: [Chain]) async throws -> [ChainBalance]
 }
 
 extension BalanceClient: DependencyKey {
@@ -17,7 +18,17 @@ extension BalanceClient: DependencyKey {
         let repository = BalanceRepository()
 
         return BalanceClient { identity, chains in
-            try await repository.fetchBalances(identity: identity, chains: chains)
+            var balances: [ChainBalance] = []
+            if let evm = identity.evm {
+                let evmBalances = try await repository.fetchBalances(identity: evm, chains: chains)
+                balances.append(contentsOf: evmBalances)
+            }
+            if let starknet = identity.starknet {
+                let starknetChain = starknet.chainId == Starknet.mainnet.chainId.description ? Starknet.mainnet : Starknet.sepolia
+                let starknetBalances = try await repository.fetchBalances(identity: starknet, chains: [starknetChain.toChain()])
+                balances.append(contentsOf: starknetBalances)
+            }
+            return balances
         }
     }
 

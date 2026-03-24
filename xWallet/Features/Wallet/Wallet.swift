@@ -23,7 +23,7 @@ struct Wallet {
         @Presents var receive: Receive.State?
         @Presents var send: Send.State?
         @Shared(.currentChain) var currentChain: Chain
-        @Shared(.activeIdentity) var activeIdentity: WalletIdentity?
+        @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
         var assets: IdentifiedArrayOf<AssetItem> = []
         var chainBalances: [ChainBalance] = []
         var currentChainUsdValue: String?
@@ -79,13 +79,16 @@ struct Wallet {
                 return .none
 
             case .fetchAllBalances:
-                guard let identity = state.activeIdentity else { return .none }
+                if state.activeIdentitySet.isEmpty {
+                    return .none
+                }
                 state.isLoadingAllChains = true
                 state.errorMessage = nil
+                let active = state.activeIdentitySet
                 let chains = state.supportedChains
                 return .run { [balanceClient] send in
                     await send(.allBalancesResponse(
-                        Result { try await balanceClient.fetchBalances(identity, chains) }
+                        Result { try await balanceClient.fetchBalances(active, chains) }
                     ))
                 }.cancellable(id: CancelID.balanceRequest, cancelInFlight: true)
 
@@ -134,7 +137,7 @@ struct Wallet {
                 return .send(.refreshButtonTapped)
 
             case .refreshButtonTapped:
-                guard state.activeIdentity?.primaryAddress != nil else { return .none }
+                if state.activeIdentitySet.isEmpty { return .none }
                 return .send(.fetchAllBalances)
 
             case .chainChanged(let chain):
@@ -147,7 +150,7 @@ struct Wallet {
                 return .none
 
             case .receiveButtonTapped:
-                state.receive = Receive.State(address: state.activeIdentity!.primaryAddress!)
+                state.receive = Receive.State(address: state.activeIdentitySet.evm!.primaryAddress!)
                 return .none
 
             case .sendButtonTapped:
@@ -164,7 +167,7 @@ struct Wallet {
 
             case .historyButtonTapped:
                 state.history = History.State(
-                    address: state.activeIdentity?.primaryAddress,
+                    address: state.activeIdentitySet.evm?.primaryAddress,
                     chain: state.currentChain
                 )
                 return .none
@@ -194,7 +197,7 @@ struct Wallet {
 
 extension Wallet.State {
     var isDashboardLoading: Bool {
-        guard activeIdentity?.primaryAddress != nil else { return false }
+        if activeIdentitySet.isEmpty { return false }
         guard errorMessage == nil else { return false }
         return isLoadingAllChains || totalUsdValue == nil || currentChainUsdValue == nil
     }
