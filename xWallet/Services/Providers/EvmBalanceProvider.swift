@@ -67,6 +67,7 @@ struct EvmBalanceProvider: Sendable {
 
     func batchFetchTokenBalances(address: String, chains: [Chain]) async throws -> [ChainBalance] {
         var balances: [ChainBalance] = []
+        let chains = chains.filter { $0.chainType() == .evm }
         await withTaskGroup(of: ChainBalance?.self) { group in
             for chain in chains {
                 group.addTask {

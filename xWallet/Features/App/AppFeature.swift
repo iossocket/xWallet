@@ -8,6 +8,7 @@
 import Foundation
 import ComposableArchitecture
 import EthereumKit
+import StarknetKit
 
 enum LaunchPhase: Equatable {
     case splashScreen
@@ -95,13 +96,21 @@ struct AppFeature {
                     await send(.initializeChainsResponse(
                         Result {
                             // Check if database is empty
-                            let existingChains = try await chainRegistry.listAllChains()
+                            let existingChains: [Chain] = try await chainRegistry.listAllChains()
                             if existingChains.isEmpty {
                                 // Insert preset chains with enabled status
                                 let presetChains = ChainPresets.presetsWithEnabledStatus()
-                                return try await chainRegistry.batchInsertChains(presetChains)
+                                _ = try await chainRegistry.batchInsertChains(presetChains)
                             }
-                            return existingChains
+                            let existingStarknet = existingChains.filter { chain in
+                                chain.chainId == Starknet.mainnet.chainId.description || chain.chainId == Starknet.sepolia.chainId.description
+                            }
+                            if existingStarknet.isEmpty {
+                                _ = try await chainRegistry.batchInsertChains([Starknet.mainnet, Starknet.sepolia].map { chain in
+                                    chain.toChain()
+                                })
+                            }
+                            return try await chainRegistry.listAllChains()
                         }
                     ))
                 }

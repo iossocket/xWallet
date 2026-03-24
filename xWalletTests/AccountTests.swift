@@ -44,7 +44,7 @@ struct AccountTests {
         }
         await store.receive(\.createWalletResponse.success) {
             $0.isLoading = false
-            $0.activeIdentity = Self.testIdentity
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
         }
     }
@@ -90,7 +90,7 @@ struct AccountTests {
         }
         await store.receive(\.importPrivateKeyResponse.success) {
             $0.isLoading = false
-            $0.activeIdentity = Self.testIdentity
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
             $0.errorMessage = nil
         }
@@ -142,7 +142,7 @@ struct AccountTests {
         }
         await store.receive(\.importMnemonicResponse.success) {
             $0.isLoading = false
-            $0.activeIdentity = Self.testIdentity
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
             $0.errorMessage = nil
         }
@@ -188,9 +188,10 @@ struct AccountTests {
 
     @Test
     func lockAccount() async {
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
+
         let state = Account.State(
-            isUnlocked: true,
-            activeIdentity: Self.testIdentity
+            isUnlocked: true
         )
         let store = TestStore(initialState: state) {
             Account()
@@ -198,7 +199,7 @@ struct AccountTests {
 
         await store.send(.lockButtonTapped) {
             $0.isUnlocked = false
-            $0.activeIdentity = nil
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet() }
         }
     }
 }

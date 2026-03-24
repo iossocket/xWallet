@@ -24,7 +24,7 @@ struct AppFeatureTests {
             $0.chainRegistry.batchInsertChains = { chains in
                 return presetChains
             }
-            $0.walletClient.activeIdentity = { throw WalletError.noActiveIdentity }
+            $0.walletClient.activeIdentitySet = { throw WalletError.noActiveIdentity }
         }
 
         await store.send(.initializeChains)
@@ -40,10 +40,10 @@ struct AppFeatureTests {
             AppFeature()
         } withDependencies: {
             $0.chainRegistry.listAllChains = { existingChains }  // Database has chains
-            $0.chainRegistry.batchInsertChains = { _ in
-                fatalError("Should not be called when database is not empty")
+            $0.chainRegistry.batchInsertChains = { chains in
+                return chains  // Starknet chains still need inserting
             }
-            $0.walletClient.activeIdentity = { throw WalletError.noActiveIdentity }
+            $0.walletClient.activeIdentitySet = { throw WalletError.noActiveIdentity }
         }
 
         await store.send(.initializeChains)
@@ -61,7 +61,7 @@ struct AppFeatureTests {
             AppFeature()
         } withDependencies: {
             $0.chainRegistry.listAllChains = { throw DummyError.databaseError }
-            $0.walletClient.activeIdentity = { throw WalletError.noActiveIdentity }
+            $0.walletClient.activeIdentitySet = { throw WalletError.noActiveIdentity }
         }
 
         await store.send(.initializeChains)

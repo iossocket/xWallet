@@ -21,8 +21,11 @@ enum ChainPresets {
     /// Returns preset chains with enabled status
     /// Mainnet and Sepolia are enabled by default
     static func presetsWithEnabledStatus() -> [Chain] {
-        allPresets.map { chain in
-            let isEnabled = chain.chainId == 1 || chain.chainId == 11_155_111  // Mainnet or Sepolia
+        func isChainEnabled(chain: EvmChain) -> Bool {
+            return chain.chainId == 1 || chain.chainId == 11_155_111  // Mainnet or Sepolia
+        }
+        return allPresets.map { chain in
+            let isEnabled = isChainEnabled(chain: chain)
             return Chain(
                 id: chain.id,
                 chainId: String(chain.chainId),

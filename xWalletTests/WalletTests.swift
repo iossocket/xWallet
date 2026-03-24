@@ -46,7 +46,7 @@ struct WalletTests {
 
     @Test
     func receiveButtonPresentsSheet() async {
-        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
 
         let state = Wallet.State()
         let store = TestStore(initialState: state) {
@@ -72,7 +72,7 @@ struct WalletTests {
 
     @Test
     func onAppearLoadsChainsAndRefreshes() async {
-        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
 
         let sepoliaRecord = Chain(
             id: "sepolia", chainId: "11155111", name: "Sepolia",
@@ -141,7 +141,7 @@ struct WalletTests {
 
     @Test
     func onAppearLoadChainsFailureFallsBackAndRefreshes() async {
-        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
 
         let fallbackChains = [EvmChain.sepolia, EvmChain.mainnet].map { $0.toChain() }
 
@@ -236,7 +236,7 @@ struct WalletTests {
 
     @Test
     func viewModeToggledBackToAllChainsTriggersFetch() async {
-        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
 
         let sepoliaRecord = Chain(
             id: "sepolia", chainId: "11155111", name: "Sepolia",
@@ -314,7 +314,7 @@ struct WalletTests {
 
     @Test
     func chainChangedRebuildsAssetsForSingleChain() async {
-        @Shared(.activeIdentity) var activeIdentity = Self.testIdentity
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(evm: Self.testIdentity)
 
         let sepoliaBalance = ChainBalance(
             chainId: "11155111", chainType: .evm, chainName: "Sepolia", symbol: "ETH",

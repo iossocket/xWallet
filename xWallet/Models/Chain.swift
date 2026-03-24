@@ -50,6 +50,14 @@ extension Chain {
     var numericChainId: UInt64? {
         UInt64(chainId)
     }
+    
+    func chainType() -> ChainType {
+        if self.id.starts(with: "starknet") {
+            return .starknet
+        } else {
+            return .evm
+        }
+    }
 }
 
 extension EvmChain {
