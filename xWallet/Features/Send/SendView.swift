@@ -13,7 +13,7 @@ struct SendView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "121212").ignoresSafeArea()
+            Color.xBg0.ignoresSafeArea()
             switch store.phase {
             case .input, .estimating:
                 inputView
@@ -35,7 +35,7 @@ struct SendView: View {
         VStack(spacing: 20) {
             if !store.availableAssets.isEmpty {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Asset").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    Text("Asset").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                     Menu {
                         ForEach(store.availableAssets) { asset in
                             Button {
@@ -51,30 +51,30 @@ struct SendView: View {
                     } label: {
                         HStack {
                             if let selected = store.selectedAsset {
-                                Text(selected.symbol).font(.body.bold())
+                                Text(selected.symbol).font(.xBodyMedium)
                                 Spacer()
-                                Text(selected.balance).font(.caption).foregroundStyle(.white.opacity(0.6))
+                                Text(selected.balance).font(.xCaption).foregroundStyle(Color.xTextSecondary)
                             } else {
-                                Text("Select asset").foregroundStyle(.white.opacity(0.6))
+                                Text("Select asset").foregroundStyle(Color.xTextSecondary)
                                 Spacer()
                             }
-                            Image(systemName: "chevron.down").font(.caption)
+                            Image(systemName: "chevron.down").font(.xCaption)
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(Color.xTextPrimary)
                         .padding()
-                        .background(.white.opacity(0.08))
+                        .background(Color.xBg2)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                Text("To address").font(.caption).foregroundStyle(.white.opacity(0.6))
+                Text("To address").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                 TextField("0x...", text: $store.toAddress)
-                    .font(.system(.body, design: .monospaced))
-                    .foregroundStyle(.white)
+                    .font(.xMono)
+                    .foregroundStyle(Color.xTextPrimary)
                     .padding()
-                    .background(.white.opacity(0.08))
+                    .background(Color.xBg2)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -83,35 +83,35 @@ struct SendView: View {
 
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text("Amount").font(.caption).foregroundStyle(.white.opacity(0.6))
+                    Text("Amount").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                     Spacer()
                     if let selected = store.selectedAsset {
-                        Text("Balance: \(selected.balance)").font(.caption).foregroundStyle(.white.opacity(0.6))
+                        Text("Balance: \(selected.balance)").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                     }
                 }
                 TextField("0.0", text: $store.amount)
-                    .font(.title2.bold())
-                    .foregroundStyle(.white)
+                    .font(.xDisplaySm)
+                    .foregroundStyle(Color.xTextPrimary)
                     .keyboardType(.decimalPad)
                     .padding()
-                    .background(.white.opacity(0.08))
+                    .background(Color.xBg2)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
             }
 
             if let error = store.errorMessage {
-                Text(error).font(.caption).foregroundStyle(.red)
+                Text(error).font(.xCaption).foregroundStyle(.red)
             }
 
             Spacer()
 
             Button {
-                store.send(.estimateGasTapped)
+                store.send(.estimateFeeTapped)
             } label: {
                 Group {
                     if store.phase == .estimating {
                         ProgressView().tint(.black)
                     } else {
-                        Text("Estimate Gas Fee")
+                        Text("Estimate Fee")
                             .font(.headline).foregroundStyle(.black)
                     }
                 }
@@ -136,17 +136,29 @@ struct SendView: View {
 
     private var confirmView: some View {
         VStack(spacing: 16) {
-            Text("Confirm transaction").font(.title2.bold()).foregroundStyle(.white)
+            Text("Confirm transaction").font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
 
             VStack(spacing: 12) {
                 feeRow("To Address", store.toAddress)
                 feeRow("Amount", "\(store.amount) \(store.selectedAsset?.symbol ?? store.chain.symbol)")
-                feeRow("Gas Limit", store.gasEstimate)
-                feeRow("Max Fee", store.maxFeePerGas)
-                feeRow("Priority Fee", store.maxPriorityFeePerGas)
+                if let fee = store.feeEstimate {
+                    switch fee {
+                    case .evm(let tx):
+                        feeRow("Gas Limit", "\(tx.gasLimit)")
+                        feeRow("Max Fee", "\(tx.maxFeePerGas?.description ?? "—") Gwei")
+                        feeRow("Priority Fee", "\(tx.maxPriorityFeePerGas?.description ?? "—") Gwei")
+                    case .starknet(let estimate):
+                        feeRow("Overall Fee", "\(estimate.overallFee) \(estimate.feeUnit)")
+                        if let l2Gas = estimate.l2GasConsumed {
+                            feeRow("L2 Gas", l2Gas)
+                        } else if let gas = estimate.gasConsumed {
+                            feeRow("Gas", gas)
+                        }
+                    }
+                }
             }
             .padding()
-            .background(.white.opacity(0.06))
+            .background(Color.xBg2)
             .clipShape(RoundedRectangle(cornerRadius: 16))
 
             Spacer()
@@ -162,7 +174,7 @@ struct SendView: View {
             }
 
             Button { store.send(.dismissError) } label: {
-                Text("Cancel").foregroundStyle(.white.opacity(0.6))
+                Text("Cancel").foregroundStyle(Color.xTextSecondary)
             }
         }
         .padding()
@@ -170,11 +182,11 @@ struct SendView: View {
 
     private func feeRow(_ label: String, _ value: String) -> some View {
         HStack {
-            Text(label).font(.subheadline).foregroundStyle(.white.opacity(0.6))
+            Text(label).font(.xBody).foregroundStyle(Color.xTextSecondary)
             Spacer()
             Text(value)
-                .font(.subheadline.monospaced())
-                .foregroundStyle(.white)
+                .font(.xMono)
+                .foregroundStyle(Color.xTextPrimary)
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
@@ -183,7 +195,7 @@ struct SendView: View {
     private var sendingView: some View {
         VStack(spacing: 16) {
             ProgressView().scaleEffect(1.5).tint(.white)
-            Text("Waiting...").foregroundStyle(.white.opacity(0.8))
+            Text("Waiting...").foregroundStyle(Color.xTextSecondary)
         }
     }
 
@@ -194,17 +206,17 @@ struct SendView: View {
                 .foregroundStyle(isSuccess ? .green : .yellow)
 
             Text(isSuccess ? "Confirmed" : "Pending")
-                .font(.title2.bold()).foregroundStyle(.white)
+                .font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
 
             Text(hash)
-                .font(.caption.monospaced())
-                .foregroundStyle(.white.opacity(0.5))
+                .font(.xMonoSm)
+                .foregroundStyle(Color.xTextSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 
             if !isSuccess {
                 ProgressView().tint(.white)
-                Text("Confirming...").font(.caption).foregroundStyle(.white.opacity(0.5))
+                Text("Confirming...").font(.xCaption).foregroundStyle(Color.xTextSecondary)
             }
         }
     }
@@ -213,8 +225,8 @@ struct SendView: View {
         VStack(spacing: 20) {
             Image(systemName: "xmark.circle.fill")
                 .font(.system(size: 64)).foregroundStyle(.red)
-            Text("Transaction failed").font(.title2.bold()).foregroundStyle(.white)
-            Text(message).font(.subheadline).foregroundStyle(.white.opacity(0.6))
+            Text("Transaction failed").font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
+            Text(message).font(.subheadline).foregroundStyle(Color.xTextSecondary)
                 .multilineTextAlignment(.center).padding(.horizontal)
             Button { store.send(.dismissError) } label: {
                 Text("Retry").font(.headline).foregroundStyle(.black)

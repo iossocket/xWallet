@@ -132,33 +132,6 @@ struct WalletDataSource {
         }
     }
     
-    func activeIdentity() throws -> WalletIdentity {
-        try dbQueue.read { db in
-            guard let record = try WalletIdentityRecord
-                .filter(Column("isActive") == true)
-                .fetchOne(db) else {
-                throw WalletError.notFound
-            }
-            let addresses = try DerivedAddressRecord
-                .filter(Column("walletId") == record.id)
-                .fetchAll(db)
-                .map { DerivedAddress(
-                    chain: ChainType(rawValue: $0.chain)!,
-                    path: $0.path,
-                    address: $0.address
-                )}
-            return WalletIdentity(
-                id: UUID(uuidString: record.id)!,
-                name: record.name,
-                sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
-                chainType: ChainType(rawValue: record.chainType)!,
-                createdAt: Date(timeIntervalSince1970: record.createdAt),
-                chainId: record.chainId,
-                derivedAddresses: addresses
-            )
-        }
-    }
-    
     func activeIdentitySet() throws -> ActiveWalletIdentitySet {
         try dbQueue.read { db in
             let records = try WalletIdentityRecord
@@ -196,22 +169,24 @@ struct WalletDataSource {
     }
 
     func saveSecret(_ source: WalletSource, for id: UUID) throws {
-        let key = "wallet_\(id.uuidString)"
+        let key: String
         let data: Data
         switch source {
         case .mnemonic(let mnemonic):
             data = try JSONEncoder().encode(["type": "mnemonic", "value": mnemonic])
+            key = "wallet_mnemonic_\(id.uuidString)"
         case .privateKey(let pkData, let chain):
             data = try JSONEncoder().encode([
                 "type": "privateKey",
                 "chain": chain.rawValue,
                 "value": pkData.base64EncodedString()
             ])
+            key = "wallet_\(id.uuidString)"
         }
         try securityStore.saveData(data, account: key)
     }
 
-    func loadSecret(for id: UUID) throws -> WalletSource {
+    func loadPrivateKey(for id: UUID) throws -> WalletSource {
         let key = "wallet_\(id.uuidString)"
         let data = try securityStore.loadData(account: key)
         let dict = try JSONDecoder().decode([String: String].self, from: data)
@@ -222,6 +197,18 @@ struct WalletDataSource {
             let chain = ChainType(rawValue: dict["chain"]!)!
             let pkData = Data(base64Encoded: dict["value"]!)!
             return .privateKey(pkData, chain)
+        default:
+            throw WalletError.decodingFailed
+        }
+    }
+    
+    func loadMnemonic(for id: UUID) throws -> WalletSource {
+        let key = "wallet_mnemonic_\(id.uuidString)"
+        let data = try securityStore.loadData(account: key)
+        let dict = try JSONDecoder().decode([String: String].self, from: data)
+        switch dict["type"] {
+        case "mnemonic":
+            return .mnemonic(dict["value"]!)
         default:
             throw WalletError.decodingFailed
         }

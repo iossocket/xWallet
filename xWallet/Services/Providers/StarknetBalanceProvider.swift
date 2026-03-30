@@ -17,8 +17,9 @@ struct StarknetBalanceProvider: Sendable {
             throw ChainError.invalidAddress
         }
 
-        let ethContract = StarknetTokenContracts.eth
-        let strkContract = StarknetTokenContracts.strk
+        
+        let ethContract = Starknet.Token.ETH
+        let strkContract = Starknet.Token.STRK
 
         async let ethResult = callBalanceOf(provider: provider, token: ethContract, account: accountAddress)
         async let strkResult = callBalanceOf(provider: provider, token: strkContract, account: accountAddress)

@@ -35,7 +35,7 @@ extension WalletClient: DependencyKey {
         return WalletClient(
             createWallet: { name, chain in
                 let mnemonic = try BIP39.generateMnemonic()
-                let address = try deriveAddress(mnemonic: mnemonic, chain: chain)
+                let (address, pk) = try deriveAddress(mnemonic: mnemonic, chain: chain)
                 let identity = WalletIdentity(
                     id: UUID(),
                     name: name ?? defaultWalletName(chain: chain),
@@ -45,6 +45,7 @@ extension WalletClient: DependencyKey {
                     derivedAddresses: [address]
                 )
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
+                try store.saveSecret(.privateKey(pk, chain), for: identity.id)
                 try store.saveIdentity(identity)
                 return try store.setActiveWallet(identity.id)
             },
@@ -52,7 +53,7 @@ extension WalletClient: DependencyKey {
                 guard BIP39.validate(mnemonic) else {
                     throw WalletError.invalidMnemonic
                 }
-                let address = try deriveAddress(mnemonic: mnemonic, chain: chain)
+                let (address, pk) = try deriveAddress(mnemonic: mnemonic, chain: chain)
                 let identity = WalletIdentity(
                     id: UUID(),
                     name: name ?? defaultWalletName(chain: chain),
@@ -62,6 +63,7 @@ extension WalletClient: DependencyKey {
                     derivedAddresses: [address]
                 )
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
+                try store.saveSecret(.privateKey(pk, chain), for: identity.id)
                 try store.saveIdentity(identity)
                 return try store.setActiveWallet(identity.id)
             },
@@ -85,14 +87,14 @@ extension WalletClient: DependencyKey {
                     let address = try deriveAddressFromPrivateKey(pkData, chain: .starknet, accountType: accountType)
                     let identity = WalletIdentity(
                         id: UUID(),
-                        name: name ?? defaultWalletName(chain: .evm),
+                        name: name ?? defaultWalletName(chain: .starknet),
                         sourceType: .privateKey,
                         chainType: .starknet,
                         createdAt: Date(),
                         chainId: chainId.rawValue,
                         derivedAddresses: [address]
                     )
-                    try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
+                    try store.saveSecret(.privateKey(pkData, .starknet), for: identity.id)
                     try store.saveIdentity(identity)
                     return try store.setActiveWallet(identity.id)
                 }
@@ -105,36 +107,38 @@ extension WalletClient: DependencyKey {
                 try store.setActiveWallet(id)
             },
             activeEvmAccount: { provider in
-                let identity = try store.activeIdentity()
-                guard identity.chainType == .evm else {
+                let identitySet = try store.activeIdentitySet()
+                guard let identity = identitySet.evm else {
                     throw WalletError.chainMismatch
                 }
-                let secret = try store.loadSecret(for: identity.id)
+                let secret = try store.loadPrivateKey(for: identity.id)
                 switch secret {
                 case .mnemonic(let mnemonic):
-                    return try EthereumAccount(mnemonic: mnemonic, path: .ethereum)
+                    return try EthereumAccount(mnemonic: mnemonic, path: .ethereum, provider: provider)
                 case .privateKey(let data, _):
-                    return try EthereumAccount(privateKey: data)
+                    return try EthereumAccount(privateKey: data, provider: provider)
                 }
             },
             activeStarknetAccount: {
-                let identity = try store.activeIdentity()
-                guard identity.chainType == .starknet else {
+                let identitySet = try store.activeIdentitySet()
+                guard let identity = identitySet.starknet else {
                     throw WalletError.chainMismatch
                 }
                 
-                let secret = try store.loadSecret(for: identity.id)
+                let secret = try store.loadPrivateKey(for: identity.id)
+                let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
+                let provider = StarknetProvider(chain: chain)
                 switch secret {
                 case .mnemonic(let mnemonic):
                     guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
                         throw CryptoError.invalidMnemonic
                     }
-                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: .sepolia)
+                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: chain, provider: provider)
                 case .privateKey(let data, _):
                     guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
                         throw CryptoError.invalidMnemonic
                     }
-                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: .sepolia)
+                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: chain, provider: provider)
                 }
             },
             activeIdentitySet: {
@@ -185,18 +189,18 @@ extension DependencyValues {
 }
 
 extension WalletClient {
-    private static func deriveAddress(mnemonic: String, chain: ChainType, options: Dictionary<String, String>? = nil) throws -> DerivedAddress {
+    private static func deriveAddress(mnemonic: String, chain: ChainType, options: Dictionary<String, String>? = nil) throws -> (DerivedAddress, Data) {
         switch chain {
         case .evm:
             let account = try EthereumAccount(mnemonic: mnemonic, path: .ethereum)
-            return DerivedAddress(
+            return (DerivedAddress(
                 chain: .evm,
                 path: "m/44'/60'/0'/0/0",
                 address: account.address.checksummed
-            )
+            ), account.privateKey)
         case .starknet:
             let seed = try BIP39.seed(from: mnemonic, password: "")
-            let privateKey = try StarknetKeyDerivation.derivePrivateKey(seed: seed, path: DerivationPath.starknet)
+            let privateKey: Felt = try StarknetKeyDerivation.derivePrivateKey(seed: seed, path: DerivationPath.starknet)
             guard let publicKey = try? StarkCurve.getPublicKey(privateKey: privateKey) else {
               throw CryptoError.publicKeyDerivationFailed
             }
@@ -207,19 +211,19 @@ extension WalletClient {
             case "oz":
                 let accountType = OpenZeppelinAccount()
                 let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
-                return DerivedAddress(
+                return (DerivedAddress(
                     chain: .starknet,
                     path: "m/44'/9004'/0'/0/0",
                     address: address.checksummed
-                )
+                ), privateKey.bigEndianData)
             case "argent":
                 let accountType = ArgentAccount()
                 let address = try accountType.computeAddress(publicKey: publicKey, salt: publicKey)
-                return DerivedAddress(
+                return (DerivedAddress(
                     chain: .starknet,
                     path: "m/44'/9004'/0'/0/0",
                     address: address.checksummed
-                )
+                ), privateKey.bigEndianData)
             default:
                 break
             }

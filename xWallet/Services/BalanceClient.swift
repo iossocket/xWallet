@@ -24,7 +24,7 @@ extension BalanceClient: DependencyKey {
                 balances.append(contentsOf: evmBalances)
             }
             if let starknet = identity.starknet {
-                let starknetChain = starknet.chainId == Starknet.mainnet.chainId.description ? Starknet.mainnet : Starknet.sepolia
+                let starknetChain = starknet.chainId == StarknetChainId.mainnet.rawValue ? Starknet.mainnet : Starknet.sepolia
                 let starknetBalances = try await repository.fetchBalances(identity: starknet, chains: [starknetChain.toChain()])
                 balances.append(contentsOf: starknetBalances)
             }
