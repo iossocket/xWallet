@@ -85,6 +85,11 @@ enum LocalStorage {
                 t.add(column: "chainId", .text)
             }
         }
+        migrator.registerMigration("v5") { db in
+            try db.alter(table: "wallet_identity") { t in
+                t.add(column: "starknetAccountType", .text)
+            }
+        }
         return migrator
     }
 }

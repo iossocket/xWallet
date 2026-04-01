@@ -92,6 +92,7 @@ extension WalletClient: DependencyKey {
                         chainType: .starknet,
                         createdAt: Date(),
                         chainId: chainId.rawValue,
+                        starknetAccountType: accountType,
                         derivedAddresses: [address]
                     )
                     try store.saveSecret(.privateKey(pkData, .starknet), for: identity.id)
@@ -124,21 +125,28 @@ extension WalletClient: DependencyKey {
                 guard let identity = identitySet.starknet else {
                     throw WalletError.chainMismatch
                 }
-                
+
                 let secret = try store.loadPrivateKey(for: identity.id)
                 let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
                 let provider = StarknetProvider(chain: chain)
+                let acctType: (any StarknetKit.StarknetAccountType)? = {
+                    print("[DEBUG] identity.starknetAccountType=\(String(describing: identity.starknetAccountType))")
+                    switch identity.starknetAccountType {
+                    case .argent: return ArgentAccount()
+                    case .oz, .none: return OpenZeppelinAccount()
+                    }
+                }()
                 switch secret {
                 case .mnemonic(let mnemonic):
                     guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
                         throw CryptoError.invalidMnemonic
                     }
-                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: chain, provider: provider)
+                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: chain, provider: provider, accountType: acctType)
                 case .privateKey(let data, _):
                     guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
                         throw CryptoError.invalidMnemonic
                     }
-                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: chain, provider: provider)
+                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: chain, provider: provider, accountType: acctType)
                 }
             },
             activeIdentitySet: {

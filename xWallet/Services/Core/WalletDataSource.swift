@@ -148,6 +148,7 @@ struct WalletDataSource {
                         path: $0.path,
                         address: $0.address
                     )}
+                let strkType = record.starknetAccountType
                 let identity = WalletIdentity(
                     id: UUID(uuidString: record.id)!,
                     name: record.name,
@@ -155,6 +156,7 @@ struct WalletDataSource {
                     chainType: ChainType(rawValue: record.chainType)!,
                     createdAt: Date(timeIntervalSince1970: record.createdAt),
                     chainId: record.chainId,
+                    starknetAccountType: strkType == nil ? nil : StarknetAccountType(rawValue: strkType!),
                     derivedAddresses: addresses
                 )
                 if record.chainType == "evm" {

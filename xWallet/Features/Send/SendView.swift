@@ -32,9 +32,9 @@ struct SendView: View {
     }
 
     private var inputView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: XSpacing.xl) {
             if !store.availableAssets.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: XSpacing.sm) {
                     Text("Asset").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                     Menu {
                         ForEach(store.availableAssets) { asset in
@@ -61,27 +61,27 @@ struct SendView: View {
                             Image(systemName: "chevron.down").font(.xCaption)
                         }
                         .foregroundStyle(Color.xTextPrimary)
-                        .padding()
+                        .padding(XSpacing.md)
                         .background(Color.xBg2)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .clipShape(RoundedRectangle(cornerRadius: XRadius.md))
                     }
                 }
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: XSpacing.sm) {
                 Text("To address").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                 TextField("0x...", text: $store.toAddress)
                     .font(.xMono)
                     .foregroundStyle(Color.xTextPrimary)
-                    .padding()
+                    .padding(XSpacing.md)
                     .background(Color.xBg2)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: XRadius.md))
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
                     .textContentType(.none)
             }
 
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: XSpacing.sm) {
                 HStack {
                     Text("Amount").font(.xCaption).foregroundStyle(Color.xTextSecondary)
                     Spacer()
@@ -93,13 +93,13 @@ struct SendView: View {
                     .font(.xDisplaySm)
                     .foregroundStyle(Color.xTextPrimary)
                     .keyboardType(.decimalPad)
-                    .padding()
+                    .padding(XSpacing.md)
                     .background(Color.xBg2)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: XRadius.md))
             }
 
             if let error = store.errorMessage {
-                Text(error).font(.xCaption).foregroundStyle(.red)
+                Text(error).font(.xCaption).foregroundStyle(Color.xRed)
             }
 
             Spacer()
@@ -112,16 +112,17 @@ struct SendView: View {
                         ProgressView().tint(.black)
                     } else {
                         Text("Estimate Fee")
-                            .font(.headline).foregroundStyle(.black)
+                            .font(.xTitle3).foregroundStyle(.black)
                     }
                 }
-                .frame(maxWidth: .infinity).padding()
-                .background(canProceed ? .white : .white.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .frame(maxWidth: .infinity)
+                .padding(XSpacing.md)
+                .background(canProceed ? Color.xTextPrimary : Color.xTextPrimary.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
             }
             .disabled(store.phase == .estimating || !canProceed)
         }
-        .padding()
+        .padding(XSpacing.lg)
     }
 
     private var canProceed: Bool {
@@ -135,10 +136,10 @@ struct SendView: View {
     }
 
     private var confirmView: some View {
-        VStack(spacing: 16) {
-            Text("Confirm transaction").font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
+        VStack(spacing: XSpacing.lg) {
+            Text("Confirm transaction").font(.xTitle1).foregroundStyle(Color.xTextPrimary)
 
-            VStack(spacing: 12) {
+            VStack(spacing: XSpacing.md) {
                 feeRow("To Address", store.toAddress)
                 feeRow("Amount", "\(store.amount) \(store.selectedAsset?.symbol ?? store.chain.symbol)")
                 if let fee = store.feeEstimate {
@@ -157,9 +158,9 @@ struct SendView: View {
                     }
                 }
             }
-            .padding()
+            .padding(XSpacing.lg)
             .background(Color.xBg2)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
 
             Spacer()
 
@@ -167,17 +168,18 @@ struct SendView: View {
                 store.send(.confirmSendTapped)
             } label: {
                 Text("Confirm")
-                    .font(.headline).foregroundStyle(.black)
-                    .frame(maxWidth: .infinity).padding()
-                    .background(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .font(.xTitle3).foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(XSpacing.md)
+                    .background(Color.xTextPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
             }
 
             Button { store.send(.dismissError) } label: {
                 Text("Cancel").foregroundStyle(Color.xTextSecondary)
             }
         }
-        .padding()
+        .padding(XSpacing.lg)
     }
 
     private func feeRow(_ label: String, _ value: String) -> some View {
@@ -193,47 +195,49 @@ struct SendView: View {
     }
 
     private var sendingView: some View {
-        VStack(spacing: 16) {
-            ProgressView().scaleEffect(1.5).tint(.white)
-            Text("Waiting...").foregroundStyle(Color.xTextSecondary)
+        VStack(spacing: XSpacing.lg) {
+            ProgressView().scaleEffect(1.5).tint(Color.xTextPrimary)
+            Text("Waiting...").font(.xBody).foregroundStyle(Color.xTextSecondary)
         }
     }
 
     private func resultView(hash: String, isSuccess: Bool) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: XSpacing.xl) {
             Image(systemName: isSuccess ? "checkmark.circle.fill" : "clock.fill")
                 .font(.system(size: 64))
-                .foregroundStyle(isSuccess ? .green : .yellow)
+                .foregroundStyle(isSuccess ? Color.xGreen : Color.xYellow)
 
             Text(isSuccess ? "Confirmed" : "Pending")
-                .font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
+                .font(.xTitle1).foregroundStyle(Color.xTextPrimary)
 
             Text(hash)
                 .font(.xMonoSm)
                 .foregroundStyle(Color.xTextSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal)
+                .padding(.horizontal, XSpacing.lg)
 
             if !isSuccess {
-                ProgressView().tint(.white)
+                ProgressView().tint(Color.xTextPrimary)
                 Text("Confirming...").font(.xCaption).foregroundStyle(Color.xTextSecondary)
             }
         }
     }
 
     private func failureView(message: String) -> some View {
-        VStack(spacing: 20) {
+        VStack(spacing: XSpacing.xl) {
             Image(systemName: "xmark.circle.fill")
-                .font(.system(size: 64)).foregroundStyle(.red)
-            Text("Transaction failed").font(.xTitle2.bold()).foregroundStyle(Color.xTextPrimary)
-            Text(message).font(.subheadline).foregroundStyle(Color.xTextSecondary)
-                .multilineTextAlignment(.center).padding(.horizontal)
+                .font(.system(size: 64)).foregroundStyle(Color.xRed)
+            Text("Transaction failed").font(.xTitle1).foregroundStyle(Color.xTextPrimary)
+            Text(message).font(.xBody).foregroundStyle(Color.xTextSecondary)
+                .multilineTextAlignment(.center).padding(.horizontal, XSpacing.lg)
             Button { store.send(.dismissError) } label: {
-                Text("Retry").font(.headline).foregroundStyle(.black)
-                    .frame(maxWidth: .infinity).padding()
-                    .background(.white).clipShape(RoundedRectangle(cornerRadius: 16))
+                Text("Retry").font(.xTitle3).foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(XSpacing.md)
+                    .background(Color.xTextPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
             }
-            .padding(.horizontal)
+            .padding(.horizontal, XSpacing.lg)
         }
     }
 }

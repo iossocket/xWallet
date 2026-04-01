@@ -69,8 +69,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/iossocket/StarknetCryptoSwift.git",
       "state" : {
-        "revision" : "2d870ea1eda1b22e8bae589b525ea75738c685aa",
-        "version" : "0.1.2"
+        "revision" : "dfe63b5423f1156612f51ff7eb88f072e1e8dc31",
+        "version" : "0.1.3"
       }
     },
     {

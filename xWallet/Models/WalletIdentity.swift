@@ -43,6 +43,7 @@ struct WalletIdentity: Identifiable, Equatable, Sendable, Codable {
     let chainType: ChainType
     let createdAt: Date
     var chainId: String?
+    var starknetAccountType: StarknetAccountType?
     var derivedAddresses: [DerivedAddress]
 
     enum SourceType: String, Codable, Sendable {
@@ -106,6 +107,7 @@ struct WalletIdentityRecord: Codable, FetchableRecord, PersistableRecord, Sendab
     let createdAt: Double    // timeIntervalSince1970
     var isActive: Bool
     var chainId: String?
+    var starknetAccountType: String?
 }
 
 struct DerivedAddressRecord: Codable, FetchableRecord, PersistableRecord, Sendable {

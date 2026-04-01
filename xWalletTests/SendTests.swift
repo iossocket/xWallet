@@ -9,6 +9,7 @@ import ComposableArchitecture
 import Testing
 import BigInt
 import EthereumKit
+import StarknetKit
 import Foundation
 import SwiftUI
 
@@ -18,7 +19,7 @@ import SwiftUI
 struct SendTests {
 
     @Test
-    func estimateGasSuccess() async {
+    func estimateFeeSuccessEvm() async {
         let mockTx = EthereumTransaction(
             chainId: EvmChain.sepolia.chainId,
             nonce: 0,
@@ -28,12 +29,6 @@ struct SendTests {
             to: EthereumAddress("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266")!,
             value: Wei.fromEther("0.01") ?? .zero,
             data: Data()
-        )
-        let estimate = Send.GasEstimate(
-            transaction: mockTx,
-            maxFeePerGas: Wei.fromGwei(20),
-            maxPriorityFeePerGas: Wei.fromGwei(2),
-            gasLimit: 21_000
         )
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
@@ -46,17 +41,14 @@ struct SendTests {
             Send()
         }
 
-        await store.send(.estimateGasResponse(.success(estimate))) {
-            $0.gasEstimate = "21000"
-            $0.maxFeePerGas = "20000000000 Gwei"
-            $0.maxPriorityFeePerGas = "2000000000 Gwei"
-            $0.preparedTx = mockTx
+        await store.send(.estimateFeeResponse(.success(.evm(mockTx)))) {
+            $0.feeEstimate = .evm(mockTx)
             $0.phase = .confirm
         }
     }
 
     @Test
-    func estimateGasFailure() async {
+    func estimateFeeFailure() async {
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
             phase: .estimating
@@ -65,14 +57,14 @@ struct SendTests {
             Send()
         }
 
-        await store.send(.estimateGasResponse(.failure(SendError.invalidAddress))) {
+        await store.send(.estimateFeeResponse(.failure(SendError.invalidAddress))) {
             $0.phase = .input
             $0.errorMessage = SendError.invalidAddress.localizedDescription
         }
     }
 
     @Test
-    func estimateGasWithInvalidAddress() async {
+    func estimateFeeWithInvalidAddress() async {
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
             toAddress: "not-an-address",
@@ -80,15 +72,17 @@ struct SendTests {
         )
         let store = TestStore(initialState: state) {
             Send()
+        } withDependencies: {
+            $0.sendClient.validateAddress = { _, _ in false }
         }
 
-        await store.send(.estimateGasTapped) {
+        await store.send(.estimateFeeTapped) {
             $0.errorMessage = "Invalid address"
         }
     }
 
     @Test
-    func estimateGasWithInvalidAmount() async {
+    func estimateFeeWithInvalidAmount() async {
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
             toAddress: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -96,9 +90,11 @@ struct SendTests {
         )
         let store = TestStore(initialState: state) {
             Send()
+        } withDependencies: {
+            $0.sendClient.validateAddress = { _, _ in true }
         }
 
-        await store.send(.estimateGasTapped) {
+        await store.send(.estimateFeeTapped) {
             $0.errorMessage = "Invalid amount"
         }
     }
@@ -112,6 +108,8 @@ struct SendTests {
         )
         let store = TestStore(initialState: state) {
             Send()
+        } withDependencies: {
+            $0.sendClient.waitForConfirmation = { _, _ in .success }
         }
         store.exhaustivity = .off
 
@@ -119,7 +117,6 @@ struct SendTests {
             $0.txHash = txHash
             $0.phase = .pending(txHash)
         }
-        await store.receive(\.pollReceipt)
     }
 
     @Test
@@ -138,7 +135,7 @@ struct SendTests {
     }
 
     @Test
-    func pollReceiptMinedTransition() async {
+    func waitForConfirmationSuccess() async {
         let txHash = "0xabc"
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
@@ -148,13 +145,13 @@ struct SendTests {
             Send()
         }
 
-        await store.send(.pollReceiptResponse(.success(true))) {
+        await store.send(.waitForConfirmationResponse(.success(.success))) {
             $0.phase = .success(txHash)
         }
     }
 
     @Test
-    func pollReceiptFailure() async {
+    func waitForConfirmationFailure() async {
         struct NetworkError: Error, LocalizedError {
             var errorDescription: String? { "Request timed out" }
         }
@@ -168,7 +165,7 @@ struct SendTests {
             Send()
         }
 
-        await store.send(.pollReceiptResponse(.failure(NetworkError()))) {
+        await store.send(.waitForConfirmationResponse(.failure(NetworkError()))) {
             $0.phase = .failure("Request timed out")
         }
     }
@@ -215,8 +212,7 @@ struct SendTests {
         let state = Send.State(
             chain: EvmChain.sepolia.toChain(),
             selectedAsset: ethAsset,
-            amount: "0.5",
-            gasEstimate: "21000"
+            amount: "0.5"
         )
 
         let store = TestStore(initialState: state) {
@@ -226,11 +222,85 @@ struct SendTests {
         await store.send(.assetSelected(usdcAsset)) {
             $0.selectedAsset = usdcAsset
             $0.amount = ""
-            $0.gasEstimate = ""
-            $0.maxFeePerGas = ""
-            $0.maxPriorityFeePerGas = ""
-            $0.preparedTx = nil
+            $0.feeEstimate = nil
             $0.phase = .input
+        }
+    }
+
+    // MARK: - Starknet Tests
+
+    @Test
+    func estimateFeeSuccessStarknet() async {
+        let json = """
+        {"gas_consumed":"0x1a4","gas_price":"0x3b9aca00","data_gas_consumed":"0x0","data_gas_price":"0x1","overall_fee":"0x61c46800","fee_unit":"WEI"}
+        """
+        let mockEstimate = try! JSONDecoder().decode(StarknetFeeEstimate.self, from: json.data(using: .utf8)!)
+        let state = Send.State(
+            chain: Starknet.sepolia.toChain(),
+            toAddress: "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7",
+            amount: "1.0",
+            phase: .estimating
+        )
+
+        let store = TestStore(initialState: state) {
+            Send()
+        }
+
+        await store.send(.estimateFeeResponse(.success(.starknet(mockEstimate)))) {
+            $0.feeEstimate = .starknet(mockEstimate)
+            $0.phase = .confirm
+        }
+    }
+
+    @Test
+    func sendSuccessEntersPendingPhaseStarknet() async {
+        let txHash = "0x01abc"
+        let state = Send.State(
+            chain: Starknet.sepolia.toChain(),
+            phase: .sending
+        )
+        let store = TestStore(initialState: state) {
+            Send()
+        } withDependencies: {
+            $0.sendClient.waitForConfirmation = { _, _ in .success }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.sendResponse(.success(txHash))) {
+            $0.txHash = txHash
+            $0.phase = .pending(txHash)
+        }
+    }
+
+    @Test
+    func waitForConfirmationSuccessStarknet() async {
+        let txHash = "0x01abc"
+        let state = Send.State(
+            chain: Starknet.sepolia.toChain(),
+            phase: .pending(txHash)
+        )
+        let store = TestStore(initialState: state) {
+            Send()
+        }
+
+        await store.send(.waitForConfirmationResponse(.success(.success))) {
+            $0.phase = .success(txHash)
+        }
+    }
+
+    @Test
+    func waitForConfirmationRevertedStarknet() async {
+        let txHash = "0x01abc"
+        let state = Send.State(
+            chain: Starknet.sepolia.toChain(),
+            phase: .pending(txHash)
+        )
+        let store = TestStore(initialState: state) {
+            Send()
+        }
+
+        await store.send(.waitForConfirmationResponse(.success(.reverted("Execution reverted")))) {
+            $0.phase = .failure("Execution reverted")
         }
     }
 }
