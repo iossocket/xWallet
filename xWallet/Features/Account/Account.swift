@@ -103,9 +103,12 @@ struct Account {
                 state.errorMessage = nil
                 let chain = state.selectedChain
                 let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                guard let accountType = AccountType(rawValue: chain.rawValue, subtype: state.selectedStarknetAccountType?.rawValue) else {
+                    return .none
+                }
                 return .run { [walletClient] send in
                     await send(.createWalletResponse(
-                        Result { try await walletClient.createWallet(name, chain) }
+                        Result { try await walletClient.createWallet(name, accountType) }
                     ))
                 }
             case .createWalletResponse(.success(let identity)):
@@ -139,9 +142,12 @@ struct Account {
                 let mnemonic = state.mnemonicInput.trimmingCharacters(in: .whitespacesAndNewlines)
                 let chain = state.selectedChain
                 let name = state.walletNameInput.isEmpty ? nil : state.walletNameInput
+                guard let accountType = AccountType(rawValue: chain.rawValue, subtype: state.selectedStarknetAccountType?.rawValue) else {
+                    return .none
+                }
                 return .run { [walletClient] send in
                     await send(.importMnemonicResponse(
-                        Result { try await walletClient.importMnemonic(mnemonic, name, chain) }
+                        Result { try await walletClient.importMnemonic(mnemonic, name, accountType) }
                     ))
                 }
             case .importMnemonicResponse(.success(let identity)):

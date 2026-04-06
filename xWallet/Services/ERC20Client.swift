@@ -45,14 +45,14 @@ extension ERC20Client: DependencyKey {
                     throw ERC20Error.invalidAddress
                 }
                 
-                guard let provider = account.provider else {
+                guard let provider = account.provider as? EthereumProvider else {
                     throw ERC20Error.invalidAccount
                 }
 
                 let contract = try EthereumContract(
                     address: contractAddr,
                     abiJson: ERC20ABI.evm,
-                    provider: provider as! EthereumProvider
+                    provider: provider
                 )
 
                 return try await contract.write(

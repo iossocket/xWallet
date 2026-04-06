@@ -12,7 +12,7 @@ protocol PriceProvider: Sendable {
 }
 
 struct CoinGeckoPriceProvider: PriceProvider {
-    let resolver: PriceIdResolver
+    let resolver: PriceIdResolverService
     let httpClient: any HTTPClientProtocol
 
     func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {

@@ -20,7 +20,7 @@ struct ChainRegistryClient {
 
 extension ChainRegistryClient: DependencyKey {
     static var liveValue: ChainRegistryClient {
-        let dataSource = ChainDataSource(dbQueue: LocalStorage.dbQueue)
+        let dataSource = ChainDataSource(dbQueue: DatabaseService.dbQueue)
         return ChainRegistryClient {
             try await dataSource.listChains()
         } listEnabledChains: {

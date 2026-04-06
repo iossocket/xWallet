@@ -30,7 +30,7 @@ extension PriceClient: DependencyKey {
 
 extension PriceClient {
     static func live(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> PriceClient {
-        let resolver: PriceIdResolver = StaticPriceIdResolver()
+        let resolver: PriceIdResolverService = StaticPriceIdResolverService()
         let coinGecko = CoinGeckoPriceProvider(resolver: resolver, httpClient: httpClient)
         let defiLlama = DefiLlamaPriceProvider(resolver: resolver, httpClient: httpClient)
         let repository = PriceRepository(coinGecko: coinGecko, defiLlama: defiLlama)

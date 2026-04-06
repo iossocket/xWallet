@@ -13,7 +13,7 @@ actor DatabaseActor: GlobalActor {
     static let shared = DatabaseActor()
 }
 
-enum LocalStorage {
+enum DatabaseService {
     static let dbQueue: DatabaseQueue = {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         try! FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)

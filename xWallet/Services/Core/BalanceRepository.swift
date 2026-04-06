@@ -20,7 +20,7 @@ struct BalanceRepository {
     func fetchBalances(identity: WalletIdentity, chains: [Chain]) async throws -> [ChainBalance] {
         guard let address = identity.primaryAddress else { return [] }
 
-        switch identity.chainType {
+        switch identity.accountType.chainType {
         case .evm:
             return try await evmProvider.batchFetchTokenBalances(address: address, chains: chains)
         case .starknet:

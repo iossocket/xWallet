@@ -21,7 +21,7 @@ struct WalletTests {
         id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
         name: "Test Wallet",
         sourceType: .mnemonic,
-        chainType: .evm,
+        accountType: .evm,
         createdAt: Date(),
         derivedAddresses: [
             DerivedAddress(

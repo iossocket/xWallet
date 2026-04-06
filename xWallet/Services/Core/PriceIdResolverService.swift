@@ -7,14 +7,14 @@
 
 import Foundation
 
-protocol PriceIdResolver: Sendable {
+protocol PriceIdResolverService: Sendable {
     /// Resolve a symbol on a given chain to an external price ID.
     /// Returns symbol → priceId mapping for all resolvable symbols.
     func resolve(chainId: String, symbols: [String]) async -> [String: String]
 }
 
 /// Static resolver using hardcoded mappings. Async interface for future extensibility.
-struct StaticPriceIdResolver: PriceIdResolver {
+struct StaticPriceIdResolverService: PriceIdResolverService {
     func resolve(chainId: String, symbols: [String]) async -> [String: String] {
         var mapped: [String: String] = [:]
         for symbol in symbols {

@@ -12,10 +12,10 @@ struct WalletListView: View {
     let store: StoreOf<WalletList>
     
     var evmWallets: [WalletIdentity] {
-        store.wallets.filter { $0.chainType == .evm }
+        store.wallets.filter { $0.accountType.chainType == .evm }
     }
     var starknetWallets: [WalletIdentity] {
-        store.wallets.filter { $0.chainType == .starknet }
+        store.wallets.filter { $0.accountType.chainType == .starknet }
     }
 
     var body: some View {

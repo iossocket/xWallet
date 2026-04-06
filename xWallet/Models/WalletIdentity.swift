@@ -19,6 +19,46 @@ enum StarknetAccountType: String, Codable, Equatable, Sendable {
     case argent
 }
 
+enum AccountType: Codable, Equatable, Sendable {
+    case evm
+    case starknet(StarknetAccountType)
+
+    var chainType: ChainType {
+        switch self {
+        case .evm: return .evm
+        case .starknet: return .starknet
+        }
+    }
+
+    var starknetAccountType: StarknetAccountType? {
+        switch self {
+        case .evm: return nil
+        case .starknet(let type): return type
+        }
+    }
+
+    var rawValue: String {
+        chainType.rawValue
+    }
+}
+
+extension AccountType {
+    init?(rawValue: String, subtype: String? = nil) {
+        switch rawValue {
+        case "evm":
+            self = .evm
+        case "starknet":
+            guard let subtype,
+                  let starknetType = StarknetAccountType(rawValue: subtype) else {
+                return nil
+            }
+            self = .starknet(starknetType)
+        default:
+            return nil
+        }
+    }
+}
+
 
 enum StarknetChainId: String, Codable, Equatable, Sendable {
     case mainnet = "SN_MAIN"
@@ -27,7 +67,7 @@ enum StarknetChainId: String, Codable, Equatable, Sendable {
 
 enum WalletSource: Equatable, Sendable {
     case mnemonic(String)
-    case privateKey(Data, ChainType)
+    case privateKey(Data, AccountType)
 }
 
 struct DerivedAddress: Equatable, Codable, Sendable {
@@ -40,10 +80,9 @@ struct WalletIdentity: Identifiable, Equatable, Sendable, Codable {
     let id: UUID
     var name: String                  // customized name
     let sourceType: SourceType
-    let chainType: ChainType
+    let accountType: AccountType
     let createdAt: Date
     var chainId: String?
-    var starknetAccountType: StarknetAccountType?
     var derivedAddresses: [DerivedAddress]
 
     enum SourceType: String, Codable, Sendable {
@@ -68,9 +107,10 @@ struct ActiveWalletIdentitySet: Equatable, Sendable {
         guard let identity = identity else {
             return
         }
-        if identity.chainType == .evm {
+        switch identity.accountType.chainType {
+        case .evm:
             evm = identity
-        } else if identity.chainType == .starknet {
+        case .starknet:
             starknet = identity
         }
     }

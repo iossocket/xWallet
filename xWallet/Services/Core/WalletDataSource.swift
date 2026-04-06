@@ -10,11 +10,11 @@ import Foundation
 
 struct WalletDataSource {
     private let dbQueue: DatabaseQueue
-    private let securityStore: SecurityStore
-    
+    private let secretDataSource: WalletSecretDataSource
+
     nonisolated init(dbQueue: DatabaseQueue, securityStore: SecurityStore) {
         self.dbQueue = dbQueue
-        self.securityStore = securityStore
+        self.secretDataSource = WalletSecretDataSource(securityStore: securityStore)
     }
     
     func saveIdentity(_ identity: WalletIdentity) throws {
@@ -23,10 +23,11 @@ struct WalletDataSource {
                 id: identity.id.uuidString,
                 name: identity.name,
                 sourceType: identity.sourceType.rawValue,
-                chainType: identity.chainType.rawValue,
+                chainType: identity.accountType.chainType.rawValue,
                 createdAt: identity.createdAt.timeIntervalSince1970,
                 isActive: false,
-                chainId: identity.chainId
+                chainId: identity.chainId,
+                starknetAccountType: identity.accountType.starknetAccountType?.rawValue
             ).insert(db)
 
             for addr in identity.derivedAddresses {
@@ -54,11 +55,14 @@ struct WalletDataSource {
                         path: $0.path,
                         address: $0.address
                     )}
+                guard let accountType = AccountType(rawValue: record.chainType, subtype: record.starknetAccountType) else {
+                    throw WalletError.chainMismatch
+                }
                 return WalletIdentity(
                     id: UUID(uuidString: record.id)!,
                     name: record.name,
                     sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
-                    chainType: ChainType(rawValue: record.chainType)!,
+                    accountType: accountType,
                     createdAt: Date(timeIntervalSince1970: record.createdAt),
                     chainId: record.chainId,
                     derivedAddresses: addresses
@@ -75,12 +79,15 @@ struct WalletDataSource {
 
     func setActiveWallet(_ id: UUID) throws -> WalletIdentity? {
         try dbQueue.write { db in
-            try WalletIdentityRecord
-                .filter(Column("id") == id.uuidString)
-                .updateAll(db, Column("isActive").set(to: true))
             guard let record = try WalletIdentityRecord.filter(Column("id") == id.uuidString).fetchOne(db) else {
                 return nil
             }
+            try WalletIdentityRecord
+                .filter(Column("chainType") == record.chainType)
+                .updateAll(db, Column("isActive").set(to: false))
+            try WalletIdentityRecord
+                .filter(Column("id") == id.uuidString)
+                .updateAll(db, Column("isActive").set(to: true))
             
             let addresses = try DerivedAddressRecord
                 .filter(Column("walletId") == record.id)
@@ -91,44 +98,19 @@ struct WalletDataSource {
                     address: $0.address
                 )}
             
+            guard let accountType = AccountType(rawValue: record.chainType, subtype: record.starknetAccountType) else {
+                throw WalletError.chainMismatch
+            }
+            
             return WalletIdentity(
                 id: UUID(uuidString: record.id)!,
                 name: record.name,
                 sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
-                chainType: ChainType(rawValue: record.chainType)!,
+                accountType: accountType,
                 createdAt: Date(timeIntervalSince1970: record.createdAt),
                 chainId: record.chainId,
                 derivedAddresses: addresses
             )
-        }
-    }
-    
-    func saveIdentityAndActiveWallet(_ identity: WalletIdentity) throws {
-        try dbQueue.write { db in
-            try WalletIdentityRecord(
-                id: identity.id.uuidString,
-                name: identity.name,
-                sourceType: identity.sourceType.rawValue,
-                chainType: identity.chainType.rawValue,
-                createdAt: identity.createdAt.timeIntervalSince1970,
-                isActive: false,
-                chainId: identity.chainId
-            ).insert(db)
-
-            for addr in identity.derivedAddresses {
-                try DerivedAddressRecord(
-                    walletId: identity.id.uuidString,
-                    chain: addr.chain.rawValue,
-                    path: addr.path,
-                    address: addr.address
-                ).insert(db)
-            }
-            
-            try WalletIdentityRecord
-                .updateAll(db, Column("isActive").set(to: false))
-            try WalletIdentityRecord
-                .filter(Column("id") == identity.id.uuidString)
-                .updateAll(db, Column("isActive").set(to: true))
         }
     }
     
@@ -148,21 +130,21 @@ struct WalletDataSource {
                         path: $0.path,
                         address: $0.address
                     )}
-                let strkType = record.starknetAccountType
+                guard let accountType = AccountType(rawValue: record.chainType, subtype: record.starknetAccountType) else {
+                    throw WalletError.chainMismatch
+                }
                 let identity = WalletIdentity(
                     id: UUID(uuidString: record.id)!,
                     name: record.name,
                     sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
-                    chainType: ChainType(rawValue: record.chainType)!,
+                    accountType: accountType,
                     createdAt: Date(timeIntervalSince1970: record.createdAt),
                     chainId: record.chainId,
-                    starknetAccountType: strkType == nil ? nil : StarknetAccountType(rawValue: strkType!),
                     derivedAddresses: addresses
                 )
-                if record.chainType == "evm" {
-                    evm = identity
-                } else if record.chainType == "starknet" {
-                    starknet = identity
+                switch identity.accountType.chainType {
+                case .evm: evm = identity
+                case .starknet: starknet = identity
                 }
             }
             
@@ -171,53 +153,14 @@ struct WalletDataSource {
     }
 
     func saveSecret(_ source: WalletSource, for id: UUID) throws {
-        let key: String
-        let data: Data
-        switch source {
-        case .mnemonic(let mnemonic):
-            data = try JSONEncoder().encode(["type": "mnemonic", "value": mnemonic])
-            key = "wallet_mnemonic_\(id.uuidString)"
-        case .privateKey(let pkData, let chain):
-            data = try JSONEncoder().encode([
-                "type": "privateKey",
-                "chain": chain.rawValue,
-                "value": pkData.base64EncodedString()
-            ])
-            key = "wallet_\(id.uuidString)"
-        }
-        try securityStore.saveData(data, account: key)
+        try secretDataSource.saveSecret(source, for: id)
     }
 
-    func loadPrivateKey(for id: UUID) throws -> WalletSource {
-        let key = "wallet_\(id.uuidString)"
-        let data = try securityStore.loadData(account: key)
-        let dict = try JSONDecoder().decode([String: String].self, from: data)
-        switch dict["type"] {
-        case "mnemonic":
-            return .mnemonic(dict["value"]!)
-        case "privateKey":
-            let chain = ChainType(rawValue: dict["chain"]!)!
-            let pkData = Data(base64Encoded: dict["value"]!)!
-            return .privateKey(pkData, chain)
-        default:
-            throw WalletError.decodingFailed
-        }
-    }
-    
-    func loadMnemonic(for id: UUID) throws -> WalletSource {
-        let key = "wallet_mnemonic_\(id.uuidString)"
-        let data = try securityStore.loadData(account: key)
-        let dict = try JSONDecoder().decode([String: String].self, from: data)
-        switch dict["type"] {
-        case "mnemonic":
-            return .mnemonic(dict["value"]!)
-        default:
-            throw WalletError.decodingFailed
-        }
+    func loadSecret(for id: UUID) throws -> WalletSource {
+        try secretDataSource.loadSecret(for: id)
     }
 
     func deleteSecret(for id: UUID) throws {
-        let key = "wallet_\(id.uuidString)"
-        try securityStore.delete(account: key)
+        try secretDataSource.deleteSecret(for: id)
     }
 }
