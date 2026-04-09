@@ -16,6 +16,8 @@ struct StarknetProviderClient {
     var getBalance: @Sendable (_ address: String, _ tokenContract: String, _ chain: Starknet) async throws -> BigUInt
     var isAccountDeployed: @Sendable (_ address: String, _ chain: Starknet) async throws -> Bool
     var waitForTransaction: @Sendable (_ hash: String, _ chain: Starknet) async throws -> StarknetReceipt
+    var estimateDeployFee: @Sendable (_ account: StarknetAccount) async throws -> StarknetFeeEstimate
+    var deployAccount: @Sendable (_ account: StarknetAccount) async throws -> String
 }
 
 extension StarknetProviderClient: DependencyKey {
@@ -50,6 +52,37 @@ extension StarknetProviderClient: DependencyKey {
                 throw StarknetProviderError.invalidHash
             }
             return try await provider.waitForTransaction(hash: felt)
+        } estimateDeployFee: { account in
+            guard let provider = account.provider else {
+                throw StarknetProviderError.missingProvider
+            }
+            let deployTx = try buildDeployAccountTx(account: account, resourceBounds: .zero)
+            let signed = try account.signDeployAccountV3(deployTx)
+            let request = StarknetRequestBuilder.estimateFeeRequest(deployV3: signed)
+            let results: [StarknetFeeEstimate] = try await provider.send(request: request)
+            guard let estimate = results.first else {
+                throw StarknetProviderError.emptyEstimate
+            }
+            return estimate
+        } deployAccount: { account in
+            guard let provider = account.provider else {
+                throw StarknetProviderError.missingProvider
+            }
+
+            // 1. Estimate fee
+            let estimateTx = try buildDeployAccountTx(account: account, resourceBounds: .zero)
+            let signedEstimate = try account.signDeployAccountV3(estimateTx)
+            let estimateRequest = StarknetRequestBuilder.estimateFeeRequest(deployV3: signedEstimate)
+            let results: [StarknetFeeEstimate] = try await provider.send(request: estimateRequest)
+            guard let estimate = results.first else {
+                throw StarknetProviderError.emptyEstimate
+            }
+
+            // 2. Build real deploy tx with estimated resource bounds
+            let resourceBounds = estimate.toResourceBounds(multiplier: 1.5)
+            let deployTx = try buildDeployAccountTx(account: account, resourceBounds: resourceBounds)
+            let signed = try account.signDeployAccountV3(deployTx)
+            return try await account.sendTransaction(.deployAccountV3(signed))
         }
     }
     
@@ -59,6 +92,12 @@ extension StarknetProviderClient: DependencyKey {
             isAccountDeployed: { _, _ in false },
             waitForTransaction: { _, _ in
                 fatalError("StarknetProviderClient.waitForTransaction: override in withDependencies")
+            },
+            estimateDeployFee: { _ in
+                fatalError("StarknetProviderClient.estimateDeployFee: override in withDependencies")
+            },
+            deployAccount: { _ in
+                fatalError("StarknetProviderClient.deployAccount: override in withDependencies")
             }
         )
     }
@@ -73,4 +112,24 @@ extension DependencyValues {
 
 enum StarknetProviderError: Error {
     case invalidHash
+    case emptyEstimate
+    case missingAccountType
+    case missingProvider
+}
+
+private func buildDeployAccountTx(
+    account: StarknetAccount,
+    resourceBounds: StarknetResourceBoundsMapping
+) throws -> StarknetDeployAccountV3 {
+    guard let accountType = account.accountType, let pubKey = account.publicKeyFelt else {
+        throw StarknetProviderError.missingAccountType
+    }
+    return StarknetDeployAccountV3(
+        classHash: accountType.classHash,
+        contractAddressSalt: pubKey,
+        constructorCalldata: accountType.constructorCalldata(publicKey: pubKey),
+        resourceBounds: resourceBounds,
+        nonce: .zero,
+        chainId: account.chain.chainId
+    )
 }

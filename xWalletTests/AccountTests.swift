@@ -8,6 +8,7 @@
 import ComposableArchitecture
 import Testing
 import Foundation
+import StarknetKit
 
 @testable import xWallet
 
@@ -29,6 +30,22 @@ struct AccountTests {
         ]
     )
 
+    private static let starknetIdentity = WalletIdentity(
+        id: UUID(uuidString: "00000000-0000-0000-0000-00000000000A")!,
+        name: "Starknet Wallet",
+        sourceType: .mnemonic,
+        accountType: .starknet(.oz),
+        createdAt: Date(),
+        chainId: StarknetChainId.sepolia.rawValue,
+        derivedAddresses: [
+            DerivedAddress(
+                chain: .starknet,
+                path: "m/44'/9004'/0'/0/0",
+                address: "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            )
+        ]
+    )
+
     @Test
     func createWalletSuccess() async {
         let state = Account.State()
@@ -36,6 +53,7 @@ struct AccountTests {
             Account()
         } withDependencies: {
             $0.walletClient.createWallet = { _, _ in await Self.testIdentity }
+            $0.walletClient.switchWallet = { _ in await Self.testIdentity }
         }
 
         await store.send(.createWalletTapped) {
@@ -44,8 +62,11 @@ struct AccountTests {
         }
         await store.receive(\.createWalletResponse.success) {
             $0.isLoading = false
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
+        }
+        await store.receive(\.switchWalletResponse.success) {
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
+            $0.accountDeploy = nil
         }
     }
 
@@ -82,6 +103,7 @@ struct AccountTests {
             Account()
         } withDependencies: {
             $0.walletClient.importPrivateKey = { _, _, _ in await Self.testIdentity }
+            $0.walletClient.switchWallet = { _ in await Self.testIdentity }
         }
 
         await store.send(.importPrivateKeyTapped) {
@@ -90,9 +112,12 @@ struct AccountTests {
         }
         await store.receive(\.importPrivateKeyResponse.success) {
             $0.isLoading = false
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
             $0.errorMessage = nil
+        }
+        await store.receive(\.switchWalletResponse.success) {
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
+            $0.accountDeploy = nil
         }
     }
 
@@ -134,6 +159,7 @@ struct AccountTests {
             Account()
         } withDependencies: {
             $0.walletClient.importMnemonic = { _, _, _ in await Self.testIdentity }
+            $0.walletClient.switchWallet = { _ in await Self.testIdentity }
         }
 
         await store.send(.importMnemonicTapped) {
@@ -142,9 +168,12 @@ struct AccountTests {
         }
         await store.receive(\.importMnemonicResponse.success) {
             $0.isLoading = false
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
             $0.isUnlocked = true
             $0.errorMessage = nil
+        }
+        await store.receive(\.switchWalletResponse.success) {
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
+            $0.accountDeploy = nil
         }
     }
 
@@ -200,6 +229,73 @@ struct AccountTests {
         await store.send(.lockButtonTapped) {
             $0.isUnlocked = false
             $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet() }
+        }
+    }
+
+    @Test
+    func createWalletStarknetSetsAccountDeploy() async {
+        let state = Account.State(
+            selectedChain: .starknet,
+            selectedStarknetAccountType: .oz
+        )
+        let store = TestStore(initialState: state) {
+            Account()
+        } withDependencies: {
+            $0.walletClient.createWallet = { _, _ in await Self.starknetIdentity }
+            $0.starknetProvider.isAccountDeployed = { _, _ in false }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.createWalletTapped) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(\.createWalletResponse.success) {
+            $0.isLoading = false
+            $0.isUnlocked = true
+        }
+        await store.send(
+            .checkDeployStatusResponse(
+                AccountDeploy.State(
+                    identityId: Self.starknetIdentity.id,
+                    address: Self.starknetIdentity.primaryAddress!,
+                    starknet: .sepolia,
+                    starknetAccountType: .oz
+                ),
+                .success(false)
+            )
+        ) {
+            $0.accountDeploy = AccountDeploy.State(
+                identityId: Self.starknetIdentity.id,
+                address: Self.starknetIdentity.primaryAddress!,
+                starknet: .sepolia,
+                starknetAccountType: .oz
+            )
+        }
+    }
+
+    @Test
+    func createWalletEvmKeepsAccountDeployNil() async {
+        let state = Account.State(selectedChain: .evm)
+        let store = TestStore(initialState: state) {
+            Account()
+        } withDependencies: {
+            $0.walletClient.createWallet = { _, _ in await Self.testIdentity }
+            $0.walletClient.switchWallet = { _ in await Self.testIdentity }
+        }
+
+        await store.send(.createWalletTapped) {
+            $0.isLoading = true
+            $0.errorMessage = nil
+        }
+        await store.receive(\.createWalletResponse.success) {
+            $0.isLoading = false
+            $0.isUnlocked = true
+            $0.accountDeploy = nil
+        }
+        await store.receive(\.switchWalletResponse.success) {
+            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
+            $0.accountDeploy = nil
         }
     }
 }

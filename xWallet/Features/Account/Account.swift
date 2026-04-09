@@ -7,6 +7,7 @@
 
 import ComposableArchitecture
 import EthereumKit
+import MultiChainKit
 
 enum OnboardingStep: Equatable {
     case landing
@@ -33,6 +34,7 @@ struct Account {
         var privateKeyInput: String = ""
         var walletNameInput: String = ""
         var isLoading: Bool = false
+        @Presents var accountDeploy: AccountDeploy.State?
         
         @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
     }
@@ -64,9 +66,13 @@ struct Account {
 
         case walletNameChanged(String)
         case backButtonTapped
+        case accountDeploy(PresentationAction<AccountDeploy.Action>)
+        case checkDeployStatusResponse(AccountDeploy.State, Result<Bool, Error>)
+        case switchWalletResponse(Result<WalletIdentity?, Error>)
     }
     
     @Dependency(\.walletClient) var walletClient
+    @Dependency(\.starknetProvider) var starknetProvider
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -113,15 +119,24 @@ struct Account {
                 }
             case .createWalletResponse(.success(let identity)):
                 state.isLoading = false
-                state.$activeIdentitySet.withLock {
-                    $0.updateIdentity(identity: identity)
-                }
                 if identity?.sourceType == .mnemonic && !state.generatedMnemonic.isEmpty {
                     state.onboardingStep = .showMnemonic
                 } else {
                     state.isUnlocked = true
                 }
-                return .none
+                guard let identity else { return .none }
+                guard let deployState = makeAccountDeployState(identity: identity) else {
+                    state.accountDeploy = nil
+                    return .run { [walletClient] send in
+                        await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
+                    }
+                }
+                return .run { [deployState, starknetProvider] send in
+                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                    await send(.checkDeployStatusResponse(deployState, .success(deployed)))
+                } catch: { error, send in
+                    await send(.checkDeployStatusResponse(deployState, .failure(error)))
+                }
             case .createWalletResponse(.failure(let error)):
                 state.isLoading = false
                 state.errorMessage = error.localizedDescription
@@ -152,12 +167,21 @@ struct Account {
                 }
             case .importMnemonicResponse(.success(let identity)):
                 state.isLoading = false
-                state.$activeIdentitySet.withLock {
-                    $0.updateIdentity(identity: identity)
-                }
                 state.isUnlocked = true
                 state.errorMessage = nil
-                return .none
+                guard let identity else { return .none }
+                guard let deployState = makeAccountDeployState(identity: identity) else {
+                    state.accountDeploy = nil
+                    return .run { [walletClient] send in
+                        await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
+                    }
+                }
+                return .run { [deployState, starknetProvider] send in
+                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                    await send(.checkDeployStatusResponse(deployState, .success(deployed)))
+                } catch: { error, send in
+                    await send(.checkDeployStatusResponse(deployState, .failure(error)))
+                }
             case .importMnemonicResponse(.failure(let error)):
                 state.isLoading = false
                 state.errorMessage = error.localizedDescription
@@ -184,12 +208,21 @@ struct Account {
                 }
             case .importPrivateKeyResponse(.success(let identity)):
                 state.isLoading = false
-                state.$activeIdentitySet.withLock {
-                    $0.updateIdentity(identity: identity)
-                }
                 state.isUnlocked = true
                 state.errorMessage = nil
-                return .none
+                guard let identity else { return .none }
+                guard let deployState = makeAccountDeployState(identity: identity) else {
+                    state.accountDeploy = nil
+                    return .run { [walletClient] send in
+                        await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
+                    }
+                }
+                return .run { [deployState, starknetProvider] send in
+                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                    await send(.checkDeployStatusResponse(deployState, .success(deployed)))
+                } catch: { error, send in
+                    await send(.checkDeployStatusResponse(deployState, .failure(error)))
+                }
             case .importPrivateKeyResponse(.failure(let error)):
                 state.isLoading = false
                 state.errorMessage = error.localizedDescription
@@ -206,7 +239,58 @@ struct Account {
             case .backButtonTapped:
                 state.onboardingStep = .landing
                 return .none
+            case .accountDeploy(.presented(.pollStatusResponse(.success(true)))):
+                guard let deployState = state.accountDeploy else {
+                    return .none
+                }
+                return .run { [walletClient] send in
+                    await send(.switchWalletResponse(Result { try await walletClient.switchWallet(deployState.identityId) }))
+                }
+            case .accountDeploy:
+                return .none
+            case .switchWalletResponse(.success(let identity)):
+                state.$activeIdentitySet.withLock {
+                    $0.updateIdentity(identity: identity)
+                }
+                state.errorMessage = nil
+                state.accountDeploy = nil
+                return .none
+            case .switchWalletResponse(.failure(let error)):
+                state.errorMessage = error.localizedDescription
+                return .none
+            case .checkDeployStatusResponse(let deployState, let result):
+                switch result {
+                case .success(let isDeployed):
+                    if isDeployed {
+                        state.accountDeploy = nil
+                        return .run { [walletClient] send in
+                            await send(.switchWalletResponse(Result { try await walletClient.switchWallet(deployState.identityId) }))
+                        }
+                    }
+                    state.accountDeploy = deployState
+                case .failure:
+                    // Fallback to showing deploy flow if status check fails.
+                    state.accountDeploy = deployState
+                }
+                return .none
             }
         }
+        .ifLet(\.$accountDeploy, action: \.accountDeploy) {
+            AccountDeploy()
+        }
     }
+}
+
+private func makeAccountDeployState(identity: WalletIdentity?) -> AccountDeploy.State? {
+    guard let identity else { return nil }
+    guard identity.accountType.chainType == .starknet else { return nil }
+    guard let address = identity.primaryAddress else { return nil }
+    guard let starknetAccountType = identity.accountType.starknetAccountType else { return nil }
+    let starknet: Starknet = identity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
+    return AccountDeploy.State(
+        identityId: identity.id,
+        address: address,
+        starknet: starknet,
+        starknetAccountType: starknetAccountType
+    )
 }

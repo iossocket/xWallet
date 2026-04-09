@@ -71,6 +71,39 @@ struct WalletDataSource {
         }
     }
 
+    func identity(_ id: UUID) throws -> WalletIdentity? {
+        try dbQueue.read { db in
+            guard let record = try WalletIdentityRecord
+                .filter(Column("id") == id.uuidString)
+                .fetchOne(db) else {
+                return nil
+            }
+
+            let addresses = try DerivedAddressRecord
+                .filter(Column("walletId") == record.id)
+                .fetchAll(db)
+                .map { DerivedAddress(
+                    chain: ChainType(rawValue: $0.chain)!,
+                    path: $0.path,
+                    address: $0.address
+                )}
+
+            guard let accountType = AccountType(rawValue: record.chainType, subtype: record.starknetAccountType) else {
+                throw WalletError.chainMismatch
+            }
+
+            return WalletIdentity(
+                id: UUID(uuidString: record.id)!,
+                name: record.name,
+                sourceType: WalletIdentity.SourceType(rawValue: record.sourceType)!,
+                accountType: accountType,
+                createdAt: Date(timeIntervalSince1970: record.createdAt),
+                chainId: record.chainId,
+                derivedAddresses: addresses
+            )
+        }
+    }
+
     func deleteIdentity(_ id: UUID) throws {
         try dbQueue.write { db in
             _ = try WalletIdentityRecord.deleteOne(db, key: id.uuidString)

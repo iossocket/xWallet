@@ -9,6 +9,7 @@ import Foundation
 import ComposableArchitecture
 import EthereumKit
 import SwiftUI
+import StarknetKit
 
 enum ViewMode: Equatable {
     case singleChain
@@ -22,6 +23,7 @@ struct Wallet {
         @Presents var history: History.State?
         @Presents var receive: Receive.State?
         @Presents var send: Send.State?
+        @Presents var accountDeploy: AccountDeploy.State?
         @Shared(.currentChain) var currentChain: Chain
         @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
         var assets: IdentifiedArrayOf<AssetItem> = []
@@ -34,6 +36,7 @@ struct Wallet {
         var totalUsdValue: String?
         var supportedChains: [Chain] = []
         var viewMode: ViewMode = .allChains
+        var isStarknetDeployed: Bool?
     }
 
     enum Action {
@@ -49,6 +52,9 @@ struct Wallet {
         case receive(PresentationAction<Receive.Action>)
         case receiveButtonTapped
         case refreshButtonTapped
+        case deployBannerTapped
+        case checkDeployStatusResponse(Result<Bool, Error>)
+        case accountDeploy(PresentationAction<AccountDeploy.Action>)
         case send(PresentationAction<Send.Action>)
         case sendButtonTapped
         case setShowBalance(Bool)
@@ -62,6 +68,7 @@ struct Wallet {
     @Dependency(\.balanceClient) var balanceClient
     @Dependency(\.chainRegistry) var chainRegistry
     @Dependency(\.priceClient) var priceClient
+    @Dependency(\.starknetProvider) var starknetProvider
 
     // load supported chains -> batch fetch balance -> batch fetch prices -> calculate total value -> list all tokens
 
@@ -120,10 +127,17 @@ struct Wallet {
                 return .none
 
             case .onAppear:
-                return .run { send in
+                return .run { [activeIdentitySet = state.activeIdentitySet, starknetProvider] send in
                     await send(.loadSupportedChainsResponse(
                         Result { try await chainRegistry.listEnabledChains() }
                     ))
+                    if let starknetIdentity = activeIdentitySet.starknet,
+                       let address = starknetIdentity.primaryAddress {
+                        let starknet: Starknet = starknetIdentity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
+                        await send(.checkDeployStatusResponse(Result {
+                            try await starknetProvider.isAccountDeployed(address, starknet)
+                        }))
+                    }
                 }
 
             case .loadSupportedChainsResponse(.success(let chains)):
@@ -138,7 +152,43 @@ struct Wallet {
 
             case .refreshButtonTapped:
                 if state.activeIdentitySet.isEmpty { return .none }
+                if let starknetIdentity = state.activeIdentitySet.starknet,
+                   let address = starknetIdentity.primaryAddress {
+                    let starknet: Starknet = starknetIdentity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
+                    return .merge(
+                        .send(.fetchAllBalances),
+                        .run { [starknetProvider] send in
+                            await send(.checkDeployStatusResponse(Result {
+                                try await starknetProvider.isAccountDeployed(address, starknet)
+                            }))
+                        }
+                    )
+                }
+                state.isStarknetDeployed = nil
                 return .send(.fetchAllBalances)
+
+            case .checkDeployStatusResponse(.success(let isDeployed)):
+                state.isStarknetDeployed = isDeployed
+                return .none
+
+            case .checkDeployStatusResponse(.failure):
+                state.isStarknetDeployed = nil
+                return .none
+
+            case .deployBannerTapped:
+                guard let starknetIdentity = state.activeIdentitySet.starknet,
+                      let address = starknetIdentity.primaryAddress,
+                      let starknetAccountType = starknetIdentity.accountType.starknetAccountType else {
+                    return .none
+                }
+                let starknet: Starknet = starknetIdentity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
+                state.accountDeploy = AccountDeploy.State(
+                    identityId: starknetIdentity.id,
+                    address: address,
+                    starknet: starknet,
+                    starknetAccountType: starknetAccountType
+                )
+                return .none
 
             case .chainChanged(let chain):
                 state.$currentChain.withLock { $0 = chain }
@@ -174,6 +224,11 @@ struct Wallet {
 
             case .send:
                 return .none
+            case .accountDeploy(.presented(.pollStatusResponse(.success(true)))):
+                state.isStarknetDeployed = true
+                return .none
+            case .accountDeploy:
+                return .none
 
             case .receive:
                 return .none
@@ -190,6 +245,7 @@ struct Wallet {
         .ifLet(\.$history, action: \.history) { History() }
         .ifLet(\.$receive, action: \.receive) { Receive() }
         .ifLet(\.$send, action: \.send) { Send() }
+        .ifLet(\.$accountDeploy, action: \.accountDeploy) { AccountDeploy() }
     }
 }
 

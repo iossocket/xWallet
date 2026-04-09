@@ -35,6 +35,33 @@ struct WalletTabView: View {
                             .padding(.top, 60)
                             .padding(.horizontal)
 
+                        if store.isStarknetDeployed == false {
+                            Button {
+                                store.send(.deployBannerTapped)
+                            } label: {
+                                HStack(spacing: XSpacing.md) {
+                                    Image(systemName: "bolt.shield.fill")
+                                        .foregroundStyle(Color.xYellow)
+                                    VStack(alignment: .leading, spacing: XSpacing.xs) {
+                                        Text("Starknet account not activated")
+                                            .font(.xBodyMedium)
+                                            .foregroundStyle(Color.xTextPrimary)
+                                        Text("Tap to activate your account before sending transactions.")
+                                            .font(.xCaption)
+                                            .foregroundStyle(Color.xTextSecondary)
+                                    }
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(Color.xTextSecondary)
+                                }
+                                .padding(XSpacing.md)
+                                .xSolidCard(radius: XRadius.md)
+                            }
+                            .buttonStyle(.plain)
+                            .padding(.top, XSpacing.md)
+                            .padding(.horizontal)
+                        }
+
                         // Dashboard ring (Dashboard Core)
                         DashboardRingView(
                             showBalance: store.showBalance,
@@ -89,6 +116,11 @@ struct WalletTabView: View {
             ) { sendStore in
                 NavigationStack {
                     SendView(store: sendStore)
+                }
+            }
+            .sheet(item: $store.scope(state: \.accountDeploy, action: \.accountDeploy)) { accountDeployStore in
+                NavigationStack {
+                    AccountDeployView(store: accountDeployStore)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)

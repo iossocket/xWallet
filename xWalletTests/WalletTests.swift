@@ -32,6 +32,22 @@ struct WalletTests {
         ]
     )
 
+    private static let starknetIdentity = WalletIdentity(
+        id: UUID(uuidString: "00000000-0000-0000-0000-00000000000B")!,
+        name: "Starknet Wallet",
+        sourceType: .mnemonic,
+        accountType: .starknet(.oz),
+        createdAt: Date(),
+        chainId: StarknetChainId.sepolia.rawValue,
+        derivedAddresses: [
+            DerivedAddress(
+                chain: .starknet,
+                path: "m/44'/9004'/0'/0/0",
+                address: "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+            )
+        ]
+    )
+
     @Test
     func toggleShowBalance() async {
         let state = Wallet.State(showBalance: true)
@@ -421,5 +437,24 @@ struct WalletTests {
         }
 
         await store.send(.pricesResponse(.failure(PriceError.httpError)))
+    }
+
+    @Test
+    func onAppearStarknetUndeployedSetsFalse() async {
+        @Shared(.activeIdentitySet) var activeIdentitySet = ActiveWalletIdentitySet(starknet: Self.starknetIdentity)
+
+        let store = TestStore(initialState: Wallet.State()) {
+            Wallet()
+        } withDependencies: {
+            $0.chainRegistry.listEnabledChains = { [] }
+            $0.balanceClient.fetchBalances = { _, _ in [] }
+            $0.starknetProvider.isAccountDeployed = { _, _ in false }
+        }
+        store.exhaustivity = .off
+
+        await store.send(.onAppear)
+        await store.receive(\.checkDeployStatusResponse.success) {
+            $0.isStarknetDeployed = false
+        }
     }
 }

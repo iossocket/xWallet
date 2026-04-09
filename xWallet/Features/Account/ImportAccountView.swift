@@ -12,19 +12,26 @@ struct ImportAccountView: View {
     @Bindable var store: StoreOf<Account>
 
     var body: some View {
-        switch store.onboardingStep {
-        case .landing:
-            landingView
-        case .selectChain:
-            chainSelectionView
-        case .showMnemonic:
-            MnemonicDisplayView(store: store)
-        case .verifyMnemonic:
-            MnemonicDisplayView(store: store)
-        case .importMnemonic:
-            ImportMnemonicView(store: store)
-        case .importPrivateKey:
-            ImportPrivateKeyView(store: store)
+        Group {
+            switch store.onboardingStep {
+            case .landing:
+                landingView
+            case .selectChain:
+                chainSelectionView
+            case .showMnemonic:
+                MnemonicDisplayView(store: store)
+            case .verifyMnemonic:
+                MnemonicDisplayView(store: store)
+            case .importMnemonic:
+                ImportMnemonicView(store: store)
+            case .importPrivateKey:
+                ImportPrivateKeyView(store: store)
+            }
+        }
+        .sheet(item: $store.scope(state: \.accountDeploy, action: \.accountDeploy)) { accountDeployStore in
+            NavigationStack {
+                AccountDeployView(store: accountDeployStore)
+            }
         }
     }
 

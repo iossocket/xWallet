@@ -25,6 +25,7 @@ struct WalletClient {
     var switchWallet: @Sendable (UUID) async throws -> WalletIdentity?
     var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
     var activeStarknetAccount: @Sendable () async throws -> StarknetAccount
+    var starknetAccount: @Sendable (UUID) async throws -> StarknetAccount
     var activeIdentitySet: @Sendable () async throws -> ActiveWalletIdentitySet
     var deleteWallet: @Sendable (UUID) async throws -> Void
 }
@@ -47,7 +48,7 @@ extension WalletClient: DependencyKey {
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
                 try store.saveSecret(.privateKey(pk, accountType), for: identity.id)
                 try store.saveIdentity(identity)
-                return try store.setActiveWallet(identity.id)
+                return identity
             },
             importMnemonic: { mnemonic, name, accountType in
                 guard BIP39.validate(mnemonic) else {
@@ -65,7 +66,7 @@ extension WalletClient: DependencyKey {
                 try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
                 try store.saveSecret(.privateKey(pk, accountType), for: identity.id)
                 try store.saveIdentity(identity)
-                return try store.setActiveWallet(identity.id)
+                return identity
             },
             importPrivateKey: { hex, name, config in
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
@@ -82,7 +83,7 @@ extension WalletClient: DependencyKey {
                     )
                     try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
                     try store.saveIdentity(identity)
-                    return try store.setActiveWallet(identity.id)
+                    return identity
                 case .starknet(let accountType, let chainId):
                     let address = try AccountDerivationService.deriveAddressFromPrivateKey(pkData, accountType: .starknet(accountType))
                     let type: AccountType = .starknet(accountType)
@@ -97,15 +98,23 @@ extension WalletClient: DependencyKey {
                     )
                     try store.saveSecret(.privateKey(pkData, type), for: identity.id)
                     try store.saveIdentity(identity)
-                    return try store.setActiveWallet(identity.id)
+                    return identity
                 }
-                
             },
             listWallets: {
                 try store.listIdentities()
             },
             switchWallet: { id in
-                try store.setActiveWallet(id)
+                guard let identity = try store.identity(id) else {
+                    return nil
+                }
+                if identity.accountType.chainType == .starknet {
+                    let isDeployed = try await isStarknetIdentityDeployed(identity)
+                    guard isDeployed else {
+                        throw WalletError.starknetAccountNotDeployed
+                    }
+                }
+                return try store.setActiveWallet(id)
             },
             activeEvmAccount: { provider in
                 let identitySet = try store.activeIdentitySet()
@@ -125,29 +134,16 @@ extension WalletClient: DependencyKey {
                 guard let identity = identitySet.starknet else {
                     throw WalletError.chainMismatch
                 }
-
-                let secret = try store.loadSecret(for: identity.id)
-                let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
-                let provider = StarknetProvider(chain: chain)
-                guard let snAccountType = identity.accountType.starknetAccountType else {
+                return try makeStarknetAccount(identity: identity, store: store)
+            },
+            starknetAccount: { id in
+                guard let identity = try store.identity(id) else {
+                    throw WalletError.notFound
+                }
+                guard identity.accountType.chainType == .starknet else {
                     throw WalletError.chainMismatch
                 }
-                let acctType: any StarknetKit.StarknetAccountType = switch snAccountType {
-                case .argent: ArgentAccount()
-                case .oz: OpenZeppelinAccount()
-                }
-                switch secret {
-                case .mnemonic(let mnemonic):
-                    guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
-                        throw CryptoError.invalidMnemonic
-                    }
-                    return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: chain, provider: provider, accountType: acctType)
-                case .privateKey(let data, _):
-                    guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
-                        throw CryptoError.invalidMnemonic
-                    }
-                    return try StarknetAccount(privateKey: Felt(data), address: address, chain: chain, provider: provider, accountType: acctType)
-                }
+                return try makeStarknetAccount(identity: identity, store: store)
             },
             activeIdentitySet: {
                 try store.activeIdentitySet()
@@ -183,6 +179,7 @@ extension WalletClient: DependencyKey {
             switchWallet: { _ in nil },
             activeEvmAccount: { _ in throw WalletError.notFound },
             activeStarknetAccount: { throw WalletError.notFound },
+            starknetAccount: { _ in throw WalletError.notFound },
             activeIdentitySet: { ActiveWalletIdentitySet(evm: testIdentity) },
             deleteWallet: { _ in }
         )
@@ -197,6 +194,44 @@ extension DependencyValues {
 }
 
 extension WalletClient {
+    private static func isStarknetIdentityDeployed(_ identity: WalletIdentity) async throws -> Bool {
+        guard let primaryAddress = identity.primaryAddress,
+              let strkAddress = StarknetAddress(primaryAddress) else {
+            return false
+        }
+        let chain: Starknet = identity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
+        let provider = StarknetProvider(chain: chain)
+        let req = StarknetRequestBuilder.getClassHashAtRequest(address: strkAddress)
+        do {
+            let _: String = try await provider.send(request: req)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    private static func makeStarknetAccount(identity: WalletIdentity, store: WalletDataSource) throws -> StarknetAccount {
+        let secret = try store.loadSecret(for: identity.id)
+        let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
+        let provider = StarknetProvider(chain: chain)
+        guard let snAccountType = identity.accountType.starknetAccountType else {
+            throw WalletError.chainMismatch
+        }
+        let acctType: any StarknetKit.StarknetAccountType = switch snAccountType {
+        case .argent: ArgentAccount()
+        case .oz: OpenZeppelinAccount()
+        }
+        guard let primaryAddress = identity.primaryAddress, let address = StarknetAddress(primaryAddress) else {
+            throw CryptoError.invalidMnemonic
+        }
+        switch secret {
+        case .mnemonic(let mnemonic):
+            return try StarknetAccount(mnemonic: mnemonic, path: DerivationPath.starknet, address: address, chain: chain, provider: provider, accountType: acctType)
+        case .privateKey(let data, _):
+            return try StarknetAccount(privateKey: Felt(data), address: address, chain: chain, provider: provider, accountType: acctType)
+        }
+    }
+
     private static func defaultWalletName(accountType: AccountType) -> String {
         switch accountType.chainType {
         case .evm: return "EVM Wallet"
@@ -213,4 +248,5 @@ enum WalletError: Error {
     case encodingFailed
     case decodingFailed
     case noActiveIdentity
+    case starknetAccountNotDeployed
 }

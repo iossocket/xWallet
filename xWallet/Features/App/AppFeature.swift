@@ -61,15 +61,11 @@ struct AppFeature {
             case .tabSelected(let tab):
                 state.selectedTab = tab
                 return .none
-            case .account(.createWalletResponse(.success)),
-                 .account(.importMnemonicResponse(.success)),
-                 .account(.importPrivateKeyResponse(.success)):
+            case .account(.switchWalletResponse(.success)):
                 state.launchPhase = .ready
                 return .none
 
-            case .settings(.importAccount(.presented(.createWalletResponse(.success)))),
-                 .settings(.importAccount(.presented(.importMnemonicResponse(.success)))),
-                 .settings(.importAccount(.presented(.importPrivateKeyResponse(.success)))):
+            case .settings(.importAccount(.presented(.switchWalletResponse(.success)))):
                 return .send(.activeIdentityCheck)
 
             case .account(.onAppear):
