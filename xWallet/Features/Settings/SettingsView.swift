@@ -76,6 +76,7 @@ struct SettingsView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: XRadius.sm))
                         }
                     }
+                    Spacer()
                 }
                 .padding(.top, XSpacing.xs)
             }
