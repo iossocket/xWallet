@@ -76,7 +76,7 @@ struct AccountDeploy {
                 if balance > .zero {
                     state.phase = .estimating
                     return .run { [identityId = state.identityId, walletClient, starknetProvider] send in
-                        let account = try await walletClient.starknetAccount(identityId)
+                        let account = try await walletClient.starknetAccount(identityId, "deploy account need to do a local sign")
                         let fee = try await starknetProvider.estimateDeployFee(account)
                         await send(.estimateFeeResponse(.success(fee)))
                     } catch: { error, send in
@@ -106,7 +106,7 @@ struct AccountDeploy {
                 state.phase = .deploying
                 state.errorMessage = nil
                 return .run { [identityId = state.identityId, walletClient, starknetProvider] send in
-                    let account = try await walletClient.starknetAccount(identityId)
+                    let account = try await walletClient.starknetAccount(identityId, "deploying starknet account")
                     let txHash = try await starknetProvider.deployAccount(account)
                     await send(.deployResponse(.success(txHash)))
                 } catch: { error, send in

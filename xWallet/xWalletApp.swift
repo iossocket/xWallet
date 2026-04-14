@@ -14,7 +14,8 @@ struct xWalletApp: App {
     let store = Store(initialState: AppFeature.State()) {
         AppFeature()
     }
-    
+    @Environment(\.scenePhase) var scenePhase
+
     init() {
         let pipeline = ImagePipeline {
             $0.imageCache = ImageCache(costLimit: 100 * 1024 * 1024) // 100MB memory
@@ -29,6 +30,9 @@ struct xWalletApp: App {
     var body: some Scene {
         WindowGroup {
             RootView(store: store)
+                .onChange(of: scenePhase) { _, newPhase in
+                    store.send(.scenePhaseChanged(newPhase))
+                }
         }
     }
 }

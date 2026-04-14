@@ -133,6 +133,7 @@ private struct DebugOverlayView: View {
                 Text("FPS").tag(0)
                 Text("Net").tag(1)
                 Text("Perf").tag(2)
+                Text("Storqage").tag(3)
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 8)
@@ -142,6 +143,7 @@ private struct DebugOverlayView: View {
                 case 0: fpsTab
                 case 1: networkTab
                 case 2: perfTab
+                case 3: storageTab
                 default: EmptyView()
                 }
             }
@@ -284,6 +286,18 @@ private struct DebugOverlayView: View {
                         Text(String(format: "%.0fms", stall["duration_ms"] as? Double ?? 0))
                             .font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundColor(.red)
                     }
+                }
+            }
+        }
+    }
+    
+    private var storageTab: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Clear all storage includes wallet identity & keychain data").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundColor(.cyan)
+            Button("Delete") {
+                Task {
+                    let ds = WalletDataSource(dbQueue: DatabaseService.dbQueue, securityStore: KeychainService())
+                    try ds.truncate()
                 }
             }
         }

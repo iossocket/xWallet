@@ -6,12 +6,14 @@
 //
 
 import Foundation
+import SwiftUI
 import ComposableArchitecture
 import EthereumKit
 import StarknetKit
 
 enum LaunchPhase: Equatable {
     case splashScreen
+    case biometricSetup
     case needsOnboarding
     case ready
 }
@@ -30,6 +32,14 @@ struct AppFeature {
         var settings = Settings.State()
         var wallet = Wallet.State()
         @Shared(.activeIdentitySet) var activeIdentitySet: ActiveWalletIdentitySet
+
+        // Biometric lock
+        var showPrivacyOverlay: Bool = false
+        var needsAuth: Bool = false
+        var backgroundedAt: Date? = nil
+        var biometricStatus: BiometricStatus = .unknown
+        @Shared(.appStorage("lockTimeout")) var lockTimeout: Int = LockTimeout.immediate.rawValue
+        @Shared(.appStorage("biometricSetupCompleted")) var biometricSetupCompleted: Bool = false
     }
     
     enum Action {
@@ -41,10 +51,19 @@ struct AppFeature {
         case activeIdentityResponse(Result<ActiveWalletIdentitySet, Error>)
         case initializeChains
         case initializeChainsResponse(Result<[Chain], Error>)
+
+        // Biometric lock
+        case scenePhaseChanged(ScenePhase)
+        case checkBiometric
+        case biometricStatusChecked(BiometricStatus)
+        case authenticate
+        case authenticateResponse(Result<Void, Error>)
     }
 
     @Dependency(\.walletClient) var walletClient
     @Dependency(\.chainRegistry) var chainRegistry
+    @Dependency(\.biometricClient) var biometricClient
+    @Dependency(\.date.now) var now
     
     var body: some ReducerOf<Self> {
         Scope(state: \.account, action: \.account) {
@@ -56,7 +75,7 @@ struct AppFeature {
         Scope(state: \.wallet, action: \.wallet) {
             Wallet()
         }
-        Reduce { [walletClient, chainRegistry] state, action in
+        Reduce { [walletClient, chainRegistry, biometricClient, now] state, action in
             switch action {
             case .tabSelected(let tab):
                 state.selectedTab = tab
@@ -117,6 +136,80 @@ struct AppFeature {
                 // Log error but don't block app launch
                 print("Failed to initialize chains: \(error)")
                 return .none
+            // MARK: - Biometric Lock
+
+            case .scenePhaseChanged(.background):
+                state.backgroundedAt = now
+                state.showPrivacyOverlay = true
+                state.needsAuth = false
+                return .none
+
+            case .scenePhaseChanged(.inactive):
+                state.showPrivacyOverlay = true
+                return .none
+
+            case .scenePhaseChanged(.active):
+                guard state.launchPhase == .ready else {
+                    return .none
+                }
+                guard !state.needsAuth else {
+                    return .none
+                }
+                if let bg = state.backgroundedAt,
+                   now.timeIntervalSince(bg) > TimeInterval(state.lockTimeout) {
+                    state.needsAuth = true
+                    state.backgroundedAt = nil
+                    return .send(.authenticate)
+                } else {
+                    state.showPrivacyOverlay = false
+                    state.backgroundedAt = nil
+                    return .none
+                }
+
+            case .scenePhaseChanged:
+                return .none
+
+            case .checkBiometric:
+                return .run { send in
+                    let status = biometricClient.checkAvailability()
+                    await send(.biometricStatusChecked(status))
+                }
+
+            case .biometricStatusChecked(let status):
+                state.biometricStatus = status
+                if case .unavailable(.noPasscode) = status {
+                    state.launchPhase = .biometricSetup
+                    return .none
+                }
+                if !state.biometricSetupCompleted {
+                    state.launchPhase = .biometricSetup
+                    return .send(.authenticate)
+                }
+                return .send(.activeIdentityCheck)
+
+            case .authenticate:
+                return .run { send in
+                    try await biometricClient.authenticate("Verify identity to continue")
+                    await send(.authenticateResponse(.success(())))
+                } catch: { error, send in
+                    await send(.authenticateResponse(.failure(error)))
+                }
+
+            case .authenticateResponse(.success):
+                if state.launchPhase == .biometricSetup {
+                    state.$biometricSetupCompleted.withLock { $0 = true }
+                    state.showPrivacyOverlay = false
+                    state.needsAuth = false
+                    return .send(.activeIdentityCheck)
+                }
+                state.showPrivacyOverlay = false
+                state.needsAuth = false
+                return .none
+
+            case .authenticateResponse(.failure):
+                state.needsAuth = true
+                return .none
+
             case .account, .settings, .wallet:
                 return .none
             }

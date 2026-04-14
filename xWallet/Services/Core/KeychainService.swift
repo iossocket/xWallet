@@ -7,6 +7,7 @@
 
 import Foundation
 import Security
+import LocalAuthentication
 
 enum KeychainError: Error, LocalizedError, Equatable {
     case unexpectedStatus(OSStatus)
@@ -20,9 +21,14 @@ enum KeychainError: Error, LocalizedError, Equatable {
     }
 }
 
+enum SecretPolicy {
+    case appUnlock        // userPresence
+    case highSecurity     // biometryCurrentSet
+}
+
 protocol SecurityStore {
-    func saveData(_ data: Data, account: String) throws
-    func loadData(account: String) throws -> Data
+    func saveData(_ data: Data, account: String, policy: SecretPolicy) throws
+    func loadData(account: String, reason: String, policy: SecretPolicy) throws -> Data
     func delete(account: String) throws
     func deleteAll() throws
 }
@@ -35,16 +41,26 @@ struct KeychainService: SecurityStore {
         self.service = service
     }
 
-    func saveData(_ data: Data, account: String) throws {
+    func saveData(_ data: Data, account: String, policy: SecretPolicy = .highSecurity) throws {
         // delete existing
         try? delete(account: account)
+        
+        var error: Unmanaged<CFError>?
+        guard let accessControl = SecAccessControlCreateWithFlags(
+            nil,
+            kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly,
+            .biometryCurrentSet,
+            &error
+        ) else {
+            throw error!.takeRetainedValue() as Error
+        }
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecValueData as String: data,
-            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+            kSecAttrAccessControl as String: accessControl
         ]
 
         let status = SecItemAdd(query as CFDictionary, nil)
@@ -53,13 +69,17 @@ struct KeychainService: SecurityStore {
         }
     }
 
-    func loadData(account: String) throws -> Data {
+    func loadData(account: String, reason: String, policy: SecretPolicy = .highSecurity) throws -> Data {
+        let context = LAContext()
+        context.localizedReason = reason
+        
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne
+            kSecMatchLimit as String: kSecMatchLimitOne,
+            kSecUseAuthenticationContext as String: context
         ]
 
         var item: CFTypeRef?

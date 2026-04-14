@@ -50,48 +50,48 @@ struct ImportAccountView: View {
                     .foregroundStyle(Color.xTextSecondary)
                 Spacer()
 
-                Button {
-                    store.send(.createWalletTapped)
-                } label: {
-                    Text("Create new wallet")
-                        .font(Font.xTitle2)
-                        .foregroundStyle(Color.xBg0)
-                        .opacity(store.isLoading ? 0 : 1)
-                        .overlay {
-                            if store.isLoading {
-                                ProgressView().tint(Color.xBg0)
-                            }
-                        }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.xAccent)
-                    .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
-                }
-                .disabled(store.isLoading)
-                .padding(.horizontal)
+//                Button {
+//                    store.send(.createWalletTapped)
+//                } label: {
+//                    Text("Create new wallet")
+//                        .font(Font.xTitle2)
+//                        .foregroundStyle(Color.xBg0)
+//                        .opacity(store.isLoading ? 0 : 1)
+//                        .overlay {
+//                            if store.isLoading {
+//                                ProgressView().tint(Color.xBg0)
+//                            }
+//                        }
+//                    .frame(maxWidth: .infinity)
+//                    .padding()
+//                    .background(Color.xAccent)
+//                    .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
+//                }
+//                .disabled(store.isLoading)
+//                .padding(.horizontal)
 
-                Button {
-                    store.send(.showImportMnemonicTapped)
-                } label: {
-                    Text("Import Recovery Phrase")
-                        .font(.xTitle2)
-                        .foregroundStyle(Color.xTextPrimary)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.xBg2)
-                        .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
-                }
-                .padding(.horizontal)
+//                Button {
+//                    store.send(.showImportMnemonicTapped)
+//                } label: {
+//                    Text("Import Recovery Phrase")
+//                        .font(.xTitle2)
+//                        .foregroundStyle(Color.xTextPrimary)
+//                        .frame(maxWidth: .infinity)
+//                        .padding()
+//                        .background(Color.xBg2)
+//                        .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
+//                }
+//                .padding(.horizontal)
 
                 Button {
                     store.send(.showImportPrivateKeyTapped)
                 } label: {
                     Text("Import Private Key")
                         .font(.xTitle2)
-                        .foregroundStyle(Color.xTextPrimary)
+                        .foregroundStyle(Color.xBg0)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.xBg2)
+                        .background(Color.xAccent)
                         .clipShape(RoundedRectangle(cornerRadius: XRadius.lg))
                 }
                 .padding(.horizontal)

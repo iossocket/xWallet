@@ -14,21 +14,30 @@ struct RootView: View {
     var body: some View {
         root.task {
             store.send(.initializeChains)
-            store.send(.activeIdentityCheck)
+            store.send(.checkBiometric)
         }
     }
-    
+
     @ViewBuilder
     private var root: some View {
         switch store.launchPhase {
         case .splashScreen:
-            EmptyView()
+            LaunchScreenView()
+        case .biometricSetup:
+            BiometricSetupView(store: store)
         case .needsOnboarding:
             ImportAccountView(
                 store: store.scope(state: \.account, action: \.account)
             )
         case .ready:
             ContentView(store: store)
+                .overlay {
+                    if store.showPrivacyOverlay {
+                        PrivacyOverlayView(store: store)
+                            .opacity(store.showPrivacyOverlay ? 1 : 0)
+                            .animation(.xTransition, value: store.showPrivacyOverlay)
+                    }
+                }
         }
     }
 }

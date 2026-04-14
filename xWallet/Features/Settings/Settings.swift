@@ -16,20 +16,29 @@ struct Settings {
         @Presents var chainManagement: ChainManagement.State?
         @Presents var importAccount: Account.State?
         @Presents var walletList: WalletList.State?
+        @Shared(.appStorage("lockTimeout")) var lockTimeout: Int = LockTimeout.fiveMinutes.rawValue
     }
 
-    enum Action {
+    enum Action: BindableAction {
+        case binding(BindingAction<State>)
         case chainManagement(PresentationAction<ChainManagement.Action>)
         case importAccount(PresentationAction<Account.Action>)
         case walletList(PresentationAction<WalletList.Action>)
         case manageChainsTapped
         case importAccountTapped
         case walletListTapped
+        case lockTimeoutChanged(Int)
     }
 
     var body: some ReducerOf<Self> {
+        BindingReducer()
         Reduce { state, action in
             switch action {
+            case .binding:
+                return .none
+            case .lockTimeoutChanged(let rawValue):
+                state.$lockTimeout.withLock { $0 = rawValue }
+                return .none
             case .manageChainsTapped:
                 state.chainManagement = ChainManagement.State()
                 return .none

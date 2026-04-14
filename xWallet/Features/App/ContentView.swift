@@ -27,6 +27,7 @@ struct ContentView: View {
             .tabItem { Label("Settings", systemImage: "gearshape.fill") }
             .tag(Tab.profile)
         }
+        .tint(Color.xAccent)
         #if DEBUG
         .onShake {
             XWDebugOverlay.shared.toggle()

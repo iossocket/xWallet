@@ -77,7 +77,7 @@ struct WalletList {
                 state.wallets = wallets
                 state.isLoading = false
                 return .none
-            case .walletsResponse(.failure(let error)):
+            case .walletsResponse(.failure(_)):
                 state.isLoading = false
                 return .none
             }

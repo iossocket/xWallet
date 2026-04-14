@@ -18,6 +18,7 @@ struct SettingsView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     header
+                    securitySection
                     accountSection
                     walletListSection
                     chainManagementSection
@@ -44,6 +45,45 @@ struct SettingsView: View {
                 WalletListView(store: walletListStore)
             }
         }
+    }
+
+    private var securitySection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Security")
+                .font(.headline)
+                .foregroundStyle(.white)
+
+            VStack(alignment: .leading, spacing: XSpacing.sm) {
+                Text("Auto-Lock")
+                    .foregroundStyle(.white)
+                    .font(.system(size: 14, weight: .semibold))
+                Text("Require authentication after being in background")
+                    .foregroundStyle(.gray)
+                    .font(.system(size: 12))
+
+                HStack(spacing: XSpacing.sm) {
+                    ForEach(LockTimeout.allCases, id: \.rawValue) { timeout in
+                        let isSelected = store.lockTimeout == timeout.rawValue
+                        Button {
+                            store.send(.lockTimeoutChanged(timeout.rawValue))
+                        } label: {
+                            Text(timeout.displayName)
+                                .font(.xCaptionBold)
+                                .foregroundColor(isSelected ? .white : .xTextSecondary)
+                                .padding(.horizontal, XSpacing.md)
+                                .padding(.vertical, XSpacing.sm)
+                                .background(isSelected ? Color.xAccent : Color.white.opacity(0.06))
+                                .clipShape(RoundedRectangle(cornerRadius: XRadius.sm))
+                        }
+                    }
+                }
+                .padding(.top, XSpacing.xs)
+            }
+            .padding(14)
+            .background(Color.white.opacity(0.04))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+        }
+        .cardStyle()
     }
 
     private var accountSection: some View {

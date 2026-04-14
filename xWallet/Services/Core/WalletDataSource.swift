@@ -189,11 +189,19 @@ struct WalletDataSource {
         try secretDataSource.saveSecret(source, for: id)
     }
 
-    func loadSecret(for id: UUID) throws -> WalletSource {
-        try secretDataSource.loadSecret(for: id)
+    func loadSecret(for id: UUID, reason: String) throws -> WalletSource {
+        try secretDataSource.loadSecret(for: id, reason: reason)
     }
 
     func deleteSecret(for id: UUID) throws {
         try secretDataSource.deleteSecret(for: id)
+    }
+    
+    func truncate() throws {
+        try dbQueue.write { db in
+            try WalletIdentityRecord.deleteAll(db)
+            try DerivedAddressRecord.deleteAll(db)
+            try secretDataSource.deleteAll()
+        }
     }
 }

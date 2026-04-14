@@ -38,15 +38,15 @@ struct WalletSecretDataSource {
             )
         }
         let data = try JSONEncoder().encode(payload)
-        try securityStore.saveData(data, account: key)
+        try securityStore.saveData(data, account: key, policy: .highSecurity)
     }
 
-    func loadSecret(for id: UUID) throws -> WalletSource {
+    func loadSecret(for id: UUID, reason: String) throws -> WalletSource {
         do {
-            let data = try securityStore.loadData(account: mnemonicAccount(for: id))
+            let data = try securityStore.loadData(account: mnemonicAccount(for: id), reason: reason, policy: .highSecurity)
             return try decodeSecret(from: data)
         } catch KeychainError.itemNotFound {
-            let data = try securityStore.loadData(account: privateKeyAccount(for: id))
+            let data = try securityStore.loadData(account: privateKeyAccount(for: id), reason: reason, policy: .highSecurity)
             return try decodeSecret(from: data)
         }
     }
@@ -61,6 +61,10 @@ struct WalletSecretDataSource {
 
         do { try securityStore.delete(account: mnemonicAccount(for: id)) }
         catch KeychainError.itemNotFound { }
+    }
+    
+    func deleteAll() throws {
+        try securityStore.deleteAll()
     }
 }
 

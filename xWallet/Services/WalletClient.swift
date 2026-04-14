@@ -25,7 +25,7 @@ struct WalletClient {
     var switchWallet: @Sendable (UUID) async throws -> WalletIdentity?
     var activeEvmAccount: @Sendable (EthereumProvider) async throws -> EthereumAccount
     var activeStarknetAccount: @Sendable () async throws -> StarknetAccount
-    var starknetAccount: @Sendable (UUID) async throws -> StarknetAccount
+    var starknetAccount: @Sendable (UUID, String) async throws -> StarknetAccount
     var activeIdentitySet: @Sendable () async throws -> ActiveWalletIdentitySet
     var deleteWallet: @Sendable (UUID) async throws -> Void
 }
@@ -121,7 +121,7 @@ extension WalletClient: DependencyKey {
                 guard let identity = identitySet.evm else {
                     throw WalletError.chainMismatch
                 }
-                let secret = try store.loadSecret(for: identity.id)
+                let secret = try store.loadSecret(for: identity.id, reason: "activating ethereum account: \(identity.name)")
                 switch secret {
                 case .mnemonic(let mnemonic):
                     return try EthereumAccount(mnemonic: mnemonic, path: .ethereum, provider: provider)
@@ -134,16 +134,16 @@ extension WalletClient: DependencyKey {
                 guard let identity = identitySet.starknet else {
                     throw WalletError.chainMismatch
                 }
-                return try makeStarknetAccount(identity: identity, store: store)
+                return try makeStarknetAccount(identity: identity, store: store, reason: "activating starknet account \(identity.name)")
             },
-            starknetAccount: { id in
+            starknetAccount: { id, reason in
                 guard let identity = try store.identity(id) else {
                     throw WalletError.notFound
                 }
                 guard identity.accountType.chainType == .starknet else {
                     throw WalletError.chainMismatch
                 }
-                return try makeStarknetAccount(identity: identity, store: store)
+                return try makeStarknetAccount(identity: identity, store: store, reason: reason)
             },
             activeIdentitySet: {
                 try store.activeIdentitySet()
@@ -179,7 +179,7 @@ extension WalletClient: DependencyKey {
             switchWallet: { _ in nil },
             activeEvmAccount: { _ in throw WalletError.notFound },
             activeStarknetAccount: { throw WalletError.notFound },
-            starknetAccount: { _ in throw WalletError.notFound },
+            starknetAccount: { _, _ in throw WalletError.notFound },
             activeIdentitySet: { ActiveWalletIdentitySet(evm: testIdentity) },
             deleteWallet: { _ in }
         )
@@ -210,8 +210,8 @@ extension WalletClient {
         }
     }
 
-    private static func makeStarknetAccount(identity: WalletIdentity, store: WalletDataSource) throws -> StarknetAccount {
-        let secret = try store.loadSecret(for: identity.id)
+    private static func makeStarknetAccount(identity: WalletIdentity, store: WalletDataSource, reason: String) throws -> StarknetAccount {
+        let secret = try store.loadSecret(for: identity.id, reason: reason)
         let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
         let provider = StarknetProvider(chain: chain)
         guard let snAccountType = identity.accountType.starknetAccountType else {
