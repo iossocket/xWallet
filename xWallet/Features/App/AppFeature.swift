@@ -12,7 +12,7 @@ import EthereumKit
 import StarknetKit
 
 enum LaunchPhase: Equatable {
-    case splashScreen
+    case launching
     case biometricSetup
     case needsOnboarding
     case ready
@@ -27,7 +27,7 @@ struct AppFeature {
     @ObservableState
     struct State: Equatable {
         var account = Account.State()
-        var launchPhase: LaunchPhase = .splashScreen
+        var launchPhase: LaunchPhase = .launching
         var selectedTab: Tab = .wallet
         var settings = Settings.State()
         var wallet = Wallet.State()

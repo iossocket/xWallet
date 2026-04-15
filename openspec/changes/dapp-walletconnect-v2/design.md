@@ -2,7 +2,9 @@
 
 xWallet 当前是一个独立钱包应用，支持 EVM 多链和 Starknet，具备完整的钱包创建、导入、余额查询、转账功能。但用户无法将钱包连接到 DApp（如 Uniswap、OpenSea、Aave）进行交互。
 
-WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket 长连接实现实时通信，支持会话管理、签名请求、交易请求。官方 Swift SDK 已迁移到 `reown-swift`（WalletKit），原 `WalletConnectSwiftV2` 已废弃，新 SPM 地址为 `https://github.com/reown-com/reown-swift`。
+WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket 长连接实现实时通信，支持会话管理、签名请求、交易请求。官方 Swift SDK 已迁移到 `reown-swift`（WalletKit），原 `WalletConnectSwiftV2` 已废弃，新 SPM 地址为 `https://github.com/reown-com/reown-swift`，product 名为 `ReownWalletKit`。
+
+经代码审计确认，MultiChainKit 已具备 WalletConnect 所需的全部签名能力：`EthereumAccount.signMessage` (EIP-191)、`EthereumAccount.signTypedData` (EIP-712)、`StarknetAccount.sign(feltHash:)` + `SNIP12TypedData.messageHash` (SNIP-12)。仅需补充三个胶水方法用于 JSON 反序列化和 hex 编码。
 
 现有架构基于 TCA (The Composable Architecture)，所有副作用通过 `@Dependency` 客户端隔离，Reducer 纯函数处理状态转换。
 
@@ -29,12 +31,13 @@ WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket �
 
 ### Decision 1: 使用 WalletConnect Swift SDK 而非自行实现协议
 
-**选择:** 依赖官方 `reown-swift`（WalletKit）SDK，原 `WalletConnectSwiftV2` 已废弃迁移至此
+**选择:** 依赖官方 `reown-swift`（WalletKit）SDK，SPM product `ReownWalletKit`，原 `WalletConnectSwiftV2` 已废弃迁移至此
 
 **理由:**
 - WalletConnect v2 协议复杂（WebSocket、加密、会话持久化、Relay 服务器交互）
 - 官方 SDK 经过大量 DApp 和钱包的生产验证
-- SDK 提供 Combine publisher，可桥接到 TCA 的 AsyncStream
+- SDK 提供 Combine publisher（`sessionProposalPublisher`、`sessionRequestPublisher` 等），可桥接到 TCA 的 AsyncStream
+- SDK 最低支持 iOS 13，与 xWallet 的 iOS 16.4 最低版本兼容
 - 自行实现协议需要数周时间且容易出现兼容性问题
 
 **替代方案:**
@@ -92,18 +95,24 @@ WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket �
 - 在 `WalletConnectClient` 中处理签名 — 拒绝，Client 不应访问 Keychain
 - 创建独立的 `DAppSigningClient` — 拒绝，过度设计，现有 `WalletClient` 已足够
 
-### Decision 5: DApp Tab 作为独立 Tab 加入 AppFeature
+### Decision 5: DApp 管理入口在 Settings，状态在 AppFeature
 
-**选择:** 在 `AppFeature` 中新增 `dappConnect` 状态和 action，在 `RootView` 的 TabView 中新增 DApp Tab
+**选择:** `DAppConnect` 状态始终存在于 `AppFeature.State` 中（非 `@Presents`），管理 UI 通过 Settings 的 NavigationLink 进入，签名/提案弹窗挂在 `ContentView` 层级
 
 **理由:**
-- DApp 连接是独立功能模块，与 Wallet、History、Settings 平级
-- 用户需要随时查看已连接的 DApp 列表
-- 会话提案和请求弹窗可以在任何 Tab 下触发（通过 `.sheet` modifier）
+- DApp 连接是低频管理操作，不值得占一个独立 Tab
+- 但 WalletConnect 事件（会话提案、签名请求）随时可能到达，AsyncStream 监听必须始终活跃
+- 因此 reducer 状态放在 AppFeature（始终存在），入口放在 Settings（按需访问）
+- 签名/提案确认弹窗挂在 ContentView 上，确保用户在任何 Tab 下都能收到
+
+**架构分离:**
+- `AppFeature.State.dappConnect: DAppConnect.State` — 始终存在，`Scope` 组合
+- `Settings` 页面 — NavigationLink "DApp Connections" → `DAppConnectView`
+- `ContentView` — `.sheet` 绑定 `pendingProposal` 和 `pendingRequest`，全局弹窗
 
 **替代方案:**
-- 将 DApp 连接放在 Settings 中 — 拒绝，功能重要性不匹配
-- 使用全局弹窗而非独立 Tab — 拒绝，用户无法主动管理会话
+- 独立 DApp Tab — 拒绝，低频操作不值得占 Tab 位，5 个 Tab 在小屏上拥挤
+- `@Presents` 可选状态 — 拒绝，AsyncStream 监听必须始终活跃，不能等用户进入页面才创建
 
 ### Decision 6: 请求确认弹窗使用 SwiftUI .sheet，而非导航栈
 
@@ -118,6 +127,66 @@ WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket �
 - 使用 NavigationStack push — 拒绝，用户可能在其他 Tab，无法 push
 - 使用系统 Alert — 拒绝，无法展示复杂内容（如 typed data 结构）
 
+### Decision 7: EIP-712 / SNIP-12 JSON 解析放在 MultiChainKit 中
+
+**选择:** 在 MultiChainKit 中为 `EIP712TypedData` 和 `SNIP12TypedData` 添加 `Decodable` 实现，同时为 `Data` 添加 `hexString` 扩展
+
+**理由:**
+- JSON 格式是行业标准（EIP-712 / SNIP-12），解析逻辑属于类型自身的能力
+- `Decodable` 实现可被未来任何需要解析 typed data 的场景复用（不仅限于 WalletConnect）
+- 避免 xWallet 中重复实现 JSON → typed data 的递归解析逻辑
+- `Data.hexString` 用于将 `EthereumSignature.rawData` 转为 WalletConnect 需要的 `"0x..."` 格式
+
+**新增内容（在 MultiChainKit 中）:**
+1. `EIP712TypedData+Decodable.swift` — 解析标准 EIP-712 JSON（types, primaryType, domain, message）
+2. `SNIP12TypedData+Decodable.swift` — 解析标准 SNIP-12 JSON（types, primaryType, domain, message）
+3. `Data+Hex.swift` — `var hexString: String` 属性（`"0x" + bytes.map { String(format: "%02x", $0) }.joined()`）
+
+**替代方案:**
+- 放在 xWallet 的 `WalletConnectClient` 内部 — 拒绝，JSON 格式是标准规范，解析逻辑属于类型自身
+- 手动构造而非反序列化 — 拒绝，DApp 发来的 JSON 需要通用解析
+
+### Decision 8: 使用 reown-swift WalletKit API
+
+**选择:** 使用 `WalletKit` 单例模式（`WalletKit.instance`）访问所有 API
+
+**核心 API 映射:**
+```swift
+// 配置
+WalletKit.configure(metadata: AppMetadata, crypto: DefaultCryptoProvider())
+
+// 配对
+WalletKit.instance.pair(uri: WalletConnectURI)
+
+// 会话管理
+WalletKit.instance.approve(proposalId: String, namespaces: [String: SessionNamespace]) -> Session
+WalletKit.instance.rejectSession(proposalId: String, reason: RejectionReason)
+WalletKit.instance.disconnect(topic: String)
+WalletKit.instance.getSessions() -> [Session]
+
+// 请求响应
+WalletKit.instance.respond(topic: String, requestId: RPCID, response: RPCResult)
+// RPCResult.response(AnyCodable) 用于批准, RPCResult.error(...) 用于拒绝
+
+// Namespace 构建
+AutoNamespaces.build(sessionProposal:chains:methods:events:accounts:) -> [String: SessionNamespace]
+
+// 事件流 (Combine publishers → AsyncStream)
+WalletKit.instance.sessionProposalPublisher  // (proposal: Session.Proposal, context: VerifyContext?)
+WalletKit.instance.sessionRequestPublisher   // (request: Request, context: VerifyContext?)
+WalletKit.instance.sessionDeletePublisher    // (String, Reason)
+WalletKit.instance.sessionsPublisher         // [Session]
+```
+
+**请求参数解析:**
+```swift
+// personal_sign / eth_signTypedData — params 是 [String]
+let params = try sessionRequest.params.get([String].self)
+
+// eth_sendTransaction — params 是 [EthereumTransaction] (SDK 内置类型)
+let params = try sessionRequest.params.get([EthereumTransaction].self)
+```
+
 ## Risks / Trade-offs
 
 **[Risk] WalletConnect Cloud projectId 未配置导致 SDK 初始化失败**
@@ -125,6 +194,9 @@ WalletConnect v2 是行业标准的钱包-DApp 连接协议，通过 WebSocket �
 
 **[Risk] SDK 的 Combine publisher 转 AsyncStream 可能丢失事件**
 → **Mitigation:** 使用 `AsyncStream` 的 buffering 策略，确保事件在 Reducer 处理前不会丢失
+
+**[Risk] DApp 发来的 EIP-712 JSON 可能包含非标准嵌套结构**
+→ **Mitigation:** `EIP712TypedData` 的 `Decodable` 实现根据 `types` 定义递归解析 `message` 字段值，对不识别的类型抛出明确错误而非静默失败。EIP-712 和 SNIP-12 均为行业标准 JSON 格式，主流 DApp 严格遵循规范
 
 **[Risk] 用户在后台时收到请求，App 被系统挂起导致超时**
 → **Mitigation:** Phase 1 接受此限制，Phase 2 实现推送通知唤醒 App

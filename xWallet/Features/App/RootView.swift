@@ -21,8 +21,8 @@ struct RootView: View {
     @ViewBuilder
     private var root: some View {
         switch store.launchPhase {
-        case .splashScreen:
-            LaunchScreenView()
+        case .launching:
+            Color.xBg0.ignoresSafeArea()
         case .biometricSetup:
             BiometricSetupView(store: store)
         case .needsOnboarding:
@@ -50,4 +50,3 @@ struct RootView: View {
         })
     )
 }
-
