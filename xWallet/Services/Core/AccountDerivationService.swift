@@ -8,6 +8,7 @@
 import EthereumKit
 import StarknetKit
 import MultiChainCore
+import Foundation
 
 enum AccountDerivationService {
     static func deriveAddressFromMnemonic(_ mnemonic: String, accountType: AccountType) throws -> (DerivedAddress, Data) {

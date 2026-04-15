@@ -72,7 +72,7 @@ extension WalletClient: DependencyKey {
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
                 switch config {
                 case .evm:
-                    let address = try AccountDerivationService.deriveAddressFromPrivateKey(pkData, accountType: .evm)
+                    let address = try AccountDerivationService.deriveAddressFromPrivateKey(pkData, accountType: AccountType.evm)
                     let identity = WalletIdentity(
                         id: UUID(),
                         name: name ?? defaultWalletName(accountType: .evm),

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A1EE22C2F8C7FA400B2D42C /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1EE22B2F8C7FA400B2D42C /* Alamofire */; };
 		5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB372ED323C9005AF084 /* WalletCore */; };
 		5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */; };
 		5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */; };
@@ -86,6 +87,7 @@
 				5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */,
 				5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */,
 				5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */,
+				5A1EE22C2F8C7FA400B2D42C /* Alamofire in Frameworks */,
 				5AFE99422F67A50300A6E68F /* SnapKit in Frameworks */,
 				5AFE99452F67A8A000A6E68F /* Nuke in Frameworks */,
 			);
@@ -150,6 +152,7 @@
 				5AFE99412F67A50300A6E68F /* SnapKit */,
 				5AFE99442F67A8A000A6E68F /* Nuke */,
 				5AFE99462F67A8A000A6E68F /* NukeExtensions */,
+				5A1EE22B2F8C7FA400B2D42C /* Alamofire */,
 			);
 			productName = xWallet;
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
@@ -214,6 +217,7 @@
 				5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */,
 				5AFE99402F67A50300A6E68F /* XCRemoteSwiftPackageReference "SnapKit" */,
 				5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */,
+				5A1EE22A2F8C7FA400B2D42C /* XCRemoteSwiftPackageReference "alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A54CB262ED3219E005AF084 /* Products */;
@@ -407,6 +411,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 66A283RC5J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Used to unlock your protected data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -442,6 +447,7 @@
 				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = 66A283RC5J;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Used to unlock your protected data.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -547,6 +553,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		5A1EE22A2F8C7FA400B2D42C /* XCRemoteSwiftPackageReference "alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/alamofire/alamofire";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.11.2;
+			};
+		};
 		5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/trustwallet/wallet-core";
@@ -590,6 +604,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5A1EE22B2F8C7FA400B2D42C /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A1EE22A2F8C7FA400B2D42C /* XCRemoteSwiftPackageReference "alamofire" */;
+			productName = Alamofire;
+		};
 		5A54CB372ED323C9005AF084 /* WalletCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */;
