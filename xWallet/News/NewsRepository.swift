@@ -10,6 +10,7 @@ import Foundation
 @MainActor
 protocol NewsRepositoryDelegate: AnyObject {
     func newsRepositoryDidUpdate(_ repository: NewsRepository)
+    func newsRepository(_ repository: NewsRepository, didAppendItems newItems: [NewsItem])
 }
 
 @MainActor
@@ -46,7 +47,6 @@ final class NewsRepository {
     func loadMore() async {
         guard hasMore, !isLoading, let key = nextKey else { return }
         isLoading = true
-        notifyDelegate()
         await fetchPage(key: key, append: true)
     }
     
@@ -57,10 +57,12 @@ final class NewsRepository {
     // MARK: - Private
 
     private func fetchPage(key: String?, append: Bool) async {
+        var appendedItems: [NewsItem]?
         do {
             let page = try await paginator.fetch(key: key, pageSize: 20)
             if append {
                 items.append(contentsOf: page.content)
+                appendedItems = page.content
             } else {
                 items = page.content
             }
@@ -76,7 +78,11 @@ final class NewsRepository {
         }
         isLoading = false
         isRefreshing = false
-        notifyDelegate()
+        if let newItems = appendedItems {
+            delegate?.newsRepository(self, didAppendItems: newItems)
+        } else {
+            notifyDelegate()
+        }
     }
 
     private func notifyDelegate() {

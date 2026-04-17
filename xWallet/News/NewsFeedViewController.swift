@@ -22,6 +22,8 @@ class NewsFeedViewController: UIViewController {
     private var dataSource: UICollectionViewDiffableDataSource<NewsFeedSection, NewsItem>!
     private let prefetcher = ImagePrefetcher()
     private let repository = NewsRepository()
+    private var heightCache: [String: CGFloat] = [:]
+    private var pendingAppends: [NewsItem] = []
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -95,7 +97,7 @@ class NewsFeedViewController: UIViewController {
     private func setupDataSource() {
         dataSource = UICollectionViewDiffableDataSource(
             collectionView: collectionView
-        ) { collectionView, indexPath, item in
+        ) { [weak self] collectionView, indexPath, item in
             switch NewsFeedSection(rawValue: indexPath.section) {
             case .hero:
                 let cell = collectionView.dequeueReusableCell(
@@ -109,6 +111,7 @@ class NewsFeedViewController: UIViewController {
                     withReuseIdentifier: CompactNewsCell.reuseIdentifier, for: indexPath
                 ) as! CompactNewsCell
                 cell.configure(with: item)
+                cell.cachedHeight = self?.heightCache[item.id] ?? 0
                 return cell
 
             case .none:
@@ -136,6 +139,36 @@ class NewsFeedViewController: UIViewController {
         }
     }
 
+    private func flushPendingAppends() {
+        guard !pendingAppends.isEmpty else { return }
+        let items = pendingAppends
+        pendingAppends = []
+        Task { [weak self] in
+            guard let self else { return }
+            await self.cacheHeights(for: items)
+            var snapshot = self.dataSource.snapshot()
+            snapshot.appendItems(items, toSection: .feed)
+            await self.dataSource.apply(snapshot, animatingDifferences: false)
+        }
+    }
+
+    private func cacheHeights(for items: [NewsItem]) async {
+        let availableWidth = collectionView.bounds.width - XSpacing.lg * 2
+        let existingKeys = Set(heightCache.keys)
+        let newEntries = await Task.detached(priority: .userInitiated) {
+            var result: [String: CGFloat] = [:]
+            for item in items where !existingKeys.contains(item.id) {
+                result[item.id] = CompactNewsCell.calculatedHeight(
+                    for: item, availableWidth: availableWidth
+                )
+            }
+            return result
+        }.value
+        for (id, height) in newEntries {
+            heightCache[id] = height
+        }
+    }
+
     private func applySnapshot(items: [NewsItem], animated: Bool) {
         var snapshot = NSDiffableDataSourceSnapshot<NewsFeedSection, NewsItem>()
         snapshot.appendSections(NewsFeedSection.allCases)
@@ -149,13 +182,41 @@ class NewsFeedViewController: UIViewController {
 
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
+    override func viewWillTransition(
+        to size: CGSize,
+        with coordinator: UIViewControllerTransitionCoordinator
+    ) {
+        super.viewWillTransition(to: size, with: coordinator)
+        heightCache = [:]
+        coordinator.animate(alongsideTransition: nil) { [weak self] _ in
+            guard let self else { return }
+            Task { [weak self] in
+                guard let self else { return }
+                await self.cacheHeights(for: self.repository.items)
+                self.collectionView.collectionViewLayout.invalidateLayout()
+            }
+        }
+    }
 }
 
 // MARK: - NewsRepositoryDelegate
 
 extension NewsFeedViewController: NewsRepositoryDelegate {
     func newsRepositoryDidUpdate(_ repository: NewsRepository) {
-        render(animated: true)
+        heightCache = [:]
+        Task { [weak self] in
+            guard let self else { return }
+            await self.cacheHeights(for: repository.items)
+            self.render(animated: true)
+        }
+    }
+
+    func newsRepository(_ repository: NewsRepository, didAppendItems newItems: [NewsItem]) {
+        guard !newItems.isEmpty else { return }
+        pendingAppends.append(contentsOf: newItems)
+        if !collectionView.isDragging && !collectionView.isDecelerating {
+            flushPendingAppends()
+        }
     }
 }
 
@@ -181,14 +242,27 @@ extension NewsFeedViewController: UICollectionViewDelegate {
         }
     }
 
-    func scrollViewDidScroll(_ scrollView: UIScrollView) {
-        let offsetY = scrollView.contentOffset.y
+    func scrollViewWillEndDragging(
+        _ scrollView: UIScrollView,
+        withVelocity velocity: CGPoint,
+        targetContentOffset: UnsafeMutablePointer<CGPoint>
+    ) {
+        let projectedY = targetContentOffset.pointee.y
         let contentHeight = scrollView.contentSize.height
         let frameHeight = scrollView.frame.height
-
-        let threshold = frameHeight * 3
-        if offsetY > contentHeight - frameHeight - threshold, contentHeight > 0 {
+        let threshold = frameHeight * 2
+        if contentHeight > 0, projectedY > contentHeight - frameHeight - threshold {
             Task { await repository.loadMore() }
+        }
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        flushPendingAppends()
+    }
+
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        if !decelerate {
+            flushPendingAppends()
         }
     }
 }

@@ -72,7 +72,7 @@ final class HeroNewsCell: UICollectionViewCell {
 
         heroImageView.snp.makeConstraints {
             $0.edges.equalToSuperview()
-            $0.height.equalTo(heroImageView.snp.width).multipliedBy(9.0 / 16.0)
+            $0.height.equalTo(heroImageView.snp.width).multipliedBy(9.0 / 16.0).priority(999)
         }
         placeholderIcon.snp.makeConstraints {
             $0.center.equalToSuperview()

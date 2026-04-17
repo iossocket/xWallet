@@ -14,6 +14,13 @@ import SwiftUI
 final class CompactNewsCell: UICollectionViewCell {
     static let reuseIdentifier = "CompactNewsCell"
 
+    private static let titleFont = UIFont.systemFont(ofSize: 16, weight: .semibold)
+    private static let summaryFont = UIFont.systemFont(ofSize: 13, weight: .regular)
+    private static let metaFont = UIFont.systemFont(ofSize: 11, weight: .medium)
+    private static let thumbnailSize: CGFloat = 80
+
+    var cachedHeight: CGFloat = 0
+
     let thumbnailView: UIImageView = {
         let iv = UIImageView()
         iv.contentMode = .scaleAspectFill
@@ -33,7 +40,7 @@ final class CompactNewsCell: UICollectionViewCell {
 
     private let titleLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 16, weight: .semibold)
+        label.font = CompactNewsCell.titleFont
         label.textColor = UIColor(Color.xTextPrimary)
         label.numberOfLines = 2
         return label
@@ -41,7 +48,7 @@ final class CompactNewsCell: UICollectionViewCell {
 
     private let summaryLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 13, weight: .regular)
+        label.font = CompactNewsCell.summaryFont
         label.textColor = UIColor(Color.xTextSecondary)
         label.numberOfLines = 2
         return label
@@ -49,7 +56,7 @@ final class CompactNewsCell: UICollectionViewCell {
 
     private let metaLabel: UILabel = {
         let label = UILabel()
-        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.font = CompactNewsCell.metaFont
         label.textColor = UIColor(Color.xTextTertiary)
         return label
     }()
@@ -60,6 +67,8 @@ final class CompactNewsCell: UICollectionViewCell {
         sv.spacing = XSpacing.xs
         return sv
     }()
+
+    private let tagPills: [TagPillView] = [TagPillView(), TagPillView()]
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -78,6 +87,11 @@ final class CompactNewsCell: UICollectionViewCell {
         contentView.addSubview(summaryLabel)
         contentView.addSubview(metaLabel)
         contentView.addSubview(tagStack)
+
+        for pill in tagPills {
+            pill.isHidden = true
+            tagStack.addArrangedSubview(pill)
+        }
 
         thumbnailView.snp.makeConstraints {
             $0.leading.top.equalToSuperview().inset(XSpacing.md)
@@ -133,43 +147,104 @@ final class CompactNewsCell: UICollectionViewCell {
     }
 
     private func configureTags(_ tags: [String]) {
-        tagStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        for tag in tags.prefix(2) {
-            let pill = TagPillView(text: tag)
-            tagStack.addArrangedSubview(pill)
+        let visibleTags = Array(tags.prefix(tagPills.count))
+        for (index, pill) in tagPills.enumerated() {
+            if index < visibleTags.count {
+                pill.update(text: visibleTags[index])
+                pill.isHidden = false
+            } else {
+                pill.isHidden = true
+            }
         }
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
+        cachedHeight = 0
         NukeExtensions.cancelRequest(for: thumbnailView)
         thumbnailView.image = nil
         placeholderIcon.isHidden = true
-        titleLabel.text = nil
-        summaryLabel.text = nil
-        metaLabel.text = nil
-        tagStack.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        tagPills.forEach { $0.isHidden = true }
+    }
+
+    override func preferredLayoutAttributesFitting(
+        _ layoutAttributes: UICollectionViewLayoutAttributes
+    ) -> UICollectionViewLayoutAttributes {
+        if cachedHeight > 0 {
+            layoutAttributes.size.height = cachedHeight
+            return layoutAttributes
+        }
+        return super.preferredLayoutAttributesFitting(layoutAttributes)
+    }
+
+    nonisolated static func calculatedHeight(for item: NewsItem, availableWidth: CGFloat) -> CGFloat {
+        let textWidth = availableWidth - XSpacing.md * 3 - thumbnailSize
+        let maxTitleLines: CGFloat = 2
+        let maxSummaryLines: CGFloat = 2
+
+        let titleHeight = textHeight(
+            for: item.title,
+            font: titleFont,
+            width: textWidth,
+            maxLines: maxTitleLines
+        )
+
+        let summaryHeight = textHeight(
+            for: item.summary ?? "",
+            font: summaryFont,
+            width: textWidth,
+            maxLines: maxSummaryLines
+        )
+
+        let metaHeight = ceil(metaFont.lineHeight)
+
+        let textTotal = titleHeight + XSpacing.xs + summaryHeight + XSpacing.xs + metaHeight
+        let contentHeight = max(thumbnailSize, textTotal)
+        return ceil(contentHeight + XSpacing.md * 2)
+    }
+
+    nonisolated private static func textHeight(
+        for text: String,
+        font: UIFont,
+        width: CGFloat,
+        maxLines: CGFloat
+    ) -> CGFloat {
+        guard !text.isEmpty else { return 0 }
+        let maxHeight = ceil(font.lineHeight * maxLines)
+        let rect = (text as NSString).boundingRect(
+            with: CGSize(width: width, height: CGFloat.greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: font],
+            context: nil
+        )
+        return min(ceil(rect.height), maxHeight)
     }
 }
 
 // MARK: - Tag Pill
 
 private final class TagPillView: UIView {
-    init(text: String) {
+    private let label: UILabel = {
+        let l = UILabel()
+        l.font = .systemFont(ofSize: 11, weight: .bold)
+        l.textColor = UIColor(Color.xAccentLight)
+        return l
+    }()
+
+    init() {
         super.init(frame: .zero)
         backgroundColor = UIColor(Color.xBg3)
         layer.cornerRadius = XRadius.sm / 2
-
-        let label = UILabel()
-        label.text = text
-        label.font = .systemFont(ofSize: 11, weight: .bold)
-        label.textColor = UIColor(Color.xAccentLight)
         addSubview(label)
         label.snp.makeConstraints {
             $0.edges.equalToSuperview().inset(UIEdgeInsets(
                 top: 2, left: XSpacing.xs, bottom: 2, right: XSpacing.xs
             ))
         }
+    }
+
+    func update(text: String) {
+        label.text = text
     }
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
