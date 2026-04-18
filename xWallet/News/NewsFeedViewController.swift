@@ -24,20 +24,21 @@ class NewsFeedViewController: UIViewController {
     private let repository = NewsRepository()
     private var heightCache: [String: CGFloat] = [:]
     private var pendingAppends: [NewsItem] = []
-    
+    private let statusView = NewsFeedStatusView()
+
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(Color.xBg0)
-        
-        
+
         setupCollectionView()
         setupDataSource()
         setupRefreshControl()
+        setupStatusView()
         repository.delegate = self
         render(animated: false)
+        updateStatusChrome()
 
         Task {
-//            await repository.clearCache()
             await repository.loadFirstPage()
         }
     }
@@ -127,16 +128,55 @@ class NewsFeedViewController: UIViewController {
         collectionView.refreshControl = rc
     }
 
+    private func setupStatusView() {
+        statusView.onRetry = { [weak self] in
+            guard let self else { return }
+            Task { await self.repository.refresh() }
+        }
+    }
+
+    private func updateStatusChrome() {
+        guard repository.items.isEmpty else {
+            if collectionView.backgroundView != nil {
+                collectionView.backgroundView = nil
+            }
+            return
+        }
+        switch repository.state {
+        case .idle, .loading:
+            statusView.setMode(.loading)
+        case .empty:
+            statusView.setMode(.empty(message: "No news yet"))
+        case .error(let err):
+            statusView.setMode(.error(message: errorMessage(for: err)))
+        case .content:
+            if collectionView.backgroundView != nil {
+                collectionView.backgroundView = nil
+            }
+            return
+        }
+        if collectionView.backgroundView !== statusView {
+            collectionView.backgroundView = statusView
+        }
+    }
+
+    private func errorMessage(for error: PaginatorError) -> String {
+        switch error {
+        case .network:
+            return "Network error. Check your connection and try again."
+        case .unknown(let message):
+            return message
+        default:
+            return "Failed to load. Please try again later."
+        }
+    }
+
     @objc private func handleRefresh() {
         Task { await repository.refresh() }
     }
 
     private func render(animated: Bool) {
         applySnapshot(items: repository.items, animated: animated)
-
-        if !repository.isRefreshing {
-            collectionView.refreshControl?.endRefreshing()
-        }
     }
 
     private func flushPendingAppends() {
@@ -202,12 +242,22 @@ class NewsFeedViewController: UIViewController {
 // MARK: - NewsRepositoryDelegate
 
 extension NewsFeedViewController: NewsRepositoryDelegate {
-    func newsRepositoryDidUpdate(_ repository: NewsRepository) {
+    func newsRepository(_ repository: NewsRepository, didChangeState state: FeedListState) {
+        if state != .loading,
+           let rc = collectionView.refreshControl,
+           rc.isRefreshing {
+            rc.endRefreshing()
+        }
+        updateStatusChrome()
+    }
+
+    func newsRepository(_ repository: NewsRepository, didReplaceItems items: [NewsItem]) {
+        pendingAppends = []
         heightCache = [:]
         Task { [weak self] in
             guard let self else { return }
-            await self.cacheHeights(for: repository.items)
-            self.render(animated: true)
+            await self.cacheHeights(for: items)
+            self.applySnapshot(items: items, animated: true)
         }
     }
 
