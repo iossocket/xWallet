@@ -9,7 +9,6 @@ import UIKit
 import Nuke
 import NukeExtensions
 import SnapKit
-import SwiftUI
 
 final class CompactNewsCell: UICollectionViewCell {
     static let reuseIdentifier = "CompactNewsCell"
@@ -26,13 +25,13 @@ final class CompactNewsCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = XRadius.md
-        iv.backgroundColor = UIColor(Color.xBg2)
+        iv.backgroundColor = UIColor.xBg2
         return iv
     }()
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView(image: UIImage(systemName: "newspaper"))
-        iv.tintColor = UIColor(Color.xTextTertiary)
+        iv.tintColor = UIColor.xTextTertiary
         iv.contentMode = .scaleAspectFit
         iv.isHidden = true
         return iv
@@ -41,7 +40,7 @@ final class CompactNewsCell: UICollectionViewCell {
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = CompactNewsCell.titleFont
-        label.textColor = UIColor(Color.xTextPrimary)
+        label.textColor = UIColor.xTextPrimary
         label.numberOfLines = 2
         return label
     }()
@@ -49,7 +48,7 @@ final class CompactNewsCell: UICollectionViewCell {
     private let summaryLabel: UILabel = {
         let label = UILabel()
         label.font = CompactNewsCell.summaryFont
-        label.textColor = UIColor(Color.xTextSecondary)
+        label.textColor = UIColor.xTextSecondary
         label.numberOfLines = 2
         return label
     }()
@@ -57,7 +56,7 @@ final class CompactNewsCell: UICollectionViewCell {
     private let metaLabel: UILabel = {
         let label = UILabel()
         label.font = CompactNewsCell.metaFont
-        label.textColor = UIColor(Color.xTextTertiary)
+        label.textColor = UIColor.xTextTertiary
         return label
     }()
 
@@ -72,7 +71,7 @@ final class CompactNewsCell: UICollectionViewCell {
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        contentView.backgroundColor = UIColor(Color.xBg1)
+        contentView.backgroundColor = UIColor.xBg1
         contentView.layer.cornerRadius = XRadius.md
         contentView.clipsToBounds = true
         setupViews()
@@ -227,13 +226,13 @@ private final class TagPillView: UIView {
     private let label: UILabel = {
         let l = UILabel()
         l.font = .systemFont(ofSize: 11, weight: .bold)
-        l.textColor = UIColor(Color.xAccentLight)
+        l.textColor = UIColor.xAccentLight
         return l
     }()
 
     init() {
         super.init(frame: .zero)
-        backgroundColor = UIColor(Color.xBg3)
+        backgroundColor = UIColor.xBg3
         layer.cornerRadius = XRadius.sm / 2
         addSubview(label)
         label.snp.makeConstraints {

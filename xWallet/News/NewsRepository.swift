@@ -53,6 +53,7 @@ final class NewsRepository {
     func loadMore() async {
         guard hasMore, state != .loading, let key = nextKey else { return }
         state = .loading
+        notifyStateChange()
         await fetchPage(key: key, append: true)
     }
 

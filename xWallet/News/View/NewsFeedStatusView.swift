@@ -7,7 +7,6 @@
 
 import UIKit
 import SnapKit
-import SwiftUI
 
 final class NewsFeedStatusView: UIView {
     enum Mode: Equatable {
@@ -34,22 +33,22 @@ final class NewsFeedStatusView: UIView {
     private func setupViews() {
         backgroundColor = .clear
 
-        spinner.color = UIColor(Color.xAccent)
+        spinner.color = UIColor.xAccent
         spinner.hidesWhenStopped = false
 
         iconView.contentMode = .scaleAspectFit
-        iconView.tintColor = UIColor(Color.xTextTertiary)
+        iconView.tintColor = UIColor.xTextTertiary
 
         messageLabel.font = .systemFont(ofSize: 14, weight: .regular)
-        messageLabel.textColor = UIColor(Color.xTextSecondary)
+        messageLabel.textColor = UIColor.xTextSecondary
         messageLabel.numberOfLines = 0
         messageLabel.textAlignment = .center
 
         retryButton.setTitle("Retry", for: .normal)
         retryButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
-        retryButton.setTitleColor(UIColor(Color.xAccent), for: .normal)
+        retryButton.setTitleColor(UIColor.xAccent, for: .normal)
         retryButton.layer.borderWidth = 1
-        retryButton.layer.borderColor = UIColor(Color.xAccent).cgColor
+        retryButton.layer.borderColor = UIColor.xAccent.cgColor
         retryButton.layer.cornerRadius = XRadius.sm
         retryButton.contentEdgeInsets = UIEdgeInsets(
             top: 0, left: XSpacing.md, bottom: 0, right: XSpacing.md

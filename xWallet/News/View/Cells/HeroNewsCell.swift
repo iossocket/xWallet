@@ -9,7 +9,6 @@ import UIKit
 import Nuke
 import NukeExtensions
 import SnapKit
-import SwiftUI
 
 final class HeroNewsCell: UICollectionViewCell {
     static let reuseIdentifier = "HeroNewsCell"
@@ -19,7 +18,7 @@ final class HeroNewsCell: UICollectionViewCell {
         iv.contentMode = .scaleAspectFill
         iv.clipsToBounds = true
         iv.layer.cornerRadius = XRadius.lg
-        iv.backgroundColor = UIColor(Color.xBg2)
+        iv.backgroundColor = UIColor.xBg2
         return iv
     }()
 
@@ -34,7 +33,7 @@ final class HeroNewsCell: UICollectionViewCell {
 
     private let placeholderIcon: UIImageView = {
         let iv = UIImageView(image: UIImage(systemName: "newspaper"))
-        iv.tintColor = UIColor(Color.xTextTertiary)
+        iv.tintColor = UIColor.xTextTertiary
         iv.contentMode = .scaleAspectFit
         iv.isHidden = true
         return iv
@@ -51,7 +50,7 @@ final class HeroNewsCell: UICollectionViewCell {
     private let metaLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = UIColor(Color.xTextSecondary)
+        label.textColor = UIColor.xTextSecondary
         return label
     }()
 

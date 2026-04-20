@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 // MARK: - Colors
 
@@ -40,6 +41,40 @@ extension Color {
     // Borders
     static let xBorder       = Color.white.opacity(0.08)
     static let xBorderStrong = Color.white.opacity(0.15)
+}
+
+// MARK: - Colors (UIKit bridge)
+
+extension UIColor {
+    // Background layers
+    static let xBg0    = UIColor(Color.xBg0)
+    static let xBg1    = UIColor(Color.xBg1)
+    static let xBg2    = UIColor(Color.xBg2)
+    static let xBg3    = UIColor(Color.xBg3)
+
+    // Brand
+    static let xAccent      = UIColor(Color.xAccent)
+    static let xAccentLight = UIColor(Color.xAccentLight)
+    static let xAccentGlow  = UIColor(Color.xAccentGlow)
+
+    // Semantic
+    static let xGreen  = UIColor(Color.xGreen)
+    static let xRed    = UIColor(Color.xRed)
+    static let xYellow = UIColor(Color.xYellow)
+    static let xBlue   = UIColor(Color.xBlue)
+
+    // Privacy
+    static let xPrivacyAccent = UIColor(Color.xPrivacyAccent)
+    static let xPrivacyGlow   = UIColor(Color.xPrivacyGlow)
+
+    // Text
+    static let xTextPrimary   = UIColor(Color.xTextPrimary)
+    static let xTextSecondary = UIColor(Color.xTextSecondary)
+    static let xTextTertiary  = UIColor(Color.xTextTertiary)
+
+    // Borders
+    static let xBorder       = UIColor(Color.xBorder)
+    static let xBorderStrong = UIColor(Color.xBorderStrong)
 }
 
 // MARK: - Typography

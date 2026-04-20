@@ -8,7 +8,6 @@
 import UIKit
 import Nuke
 import NukeExtensions
-import SwiftUI
 import SafariServices
 
 enum NewsFeedSection: Int, CaseIterable {
@@ -28,7 +27,7 @@ class NewsFeedViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(Color.xBg0)
+        view.backgroundColor = UIColor.xBg0
 
         setupCollectionView()
         setupDataSource()
@@ -56,6 +55,7 @@ class NewsFeedViewController: UIViewController {
         collectionView.prefetchDataSource = self
         collectionView.register(HeroNewsCell.self, forCellWithReuseIdentifier: HeroNewsCell.reuseIdentifier)
         collectionView.register(CompactNewsCell.self, forCellWithReuseIdentifier: CompactNewsCell.reuseIdentifier)
+        collectionView.register(NewsFeedFooterView.self, forSupplementaryViewOfKind: NewsFeedFooterView.elementKind, withReuseIdentifier: NewsFeedFooterView.reuseIdentifier)
         view.addSubview(collectionView)
     }
 
@@ -87,6 +87,15 @@ class NewsFeedViewController: UIViewController {
                 section.contentInsets = NSDirectionalEdgeInsets(
                     top: 0, leading: XSpacing.lg, bottom: XSpacing.lg, trailing: XSpacing.lg
                 )
+                
+                let footerSize = NSCollectionLayoutSize(widthDimension: .fractionalWidth(1.0), heightDimension: .absolute(56))
+                let footer = NSCollectionLayoutBoundarySupplementaryItem(
+                    layoutSize: footerSize,
+                    elementKind: NewsFeedFooterView.elementKind,
+                    alignment: .bottom
+                )
+                section.boundarySupplementaryItems = [footer]
+                
                 return section
 
             case .none:
@@ -119,11 +128,27 @@ class NewsFeedViewController: UIViewController {
                 fatalError("Unknown section")
             }
         }
+        
+        dataSource.supplementaryViewProvider = { [weak self] collectionView, kind, indexPath in
+            guard kind == NewsFeedFooterView.elementKind,
+                  NewsFeedSection(rawValue: indexPath.section) == .feed else { return nil }
+            let footer = collectionView.dequeueReusableSupplementaryView(
+                ofKind: NewsFeedFooterView.elementKind,
+                withReuseIdentifier: NewsFeedFooterView.reuseIdentifier,
+                for: indexPath
+            ) as! NewsFeedFooterView
+            footer.onRetry = { [weak self] in
+                guard let self else { return }
+                Task { await self.repository.loadMore() }
+            }
+            footer.config(mode: self?.computeFooterMode() ?? .blank)
+            return footer
+        }
     }
 
     private func setupRefreshControl() {
         let rc = UIRefreshControl()
-        rc.tintColor = UIColor(Color.xAccent)
+        rc.tintColor = UIColor.xAccent
         rc.addTarget(self, action: #selector(handleRefresh), for: .valueChanged)
         collectionView.refreshControl = rc
     }
@@ -160,6 +185,35 @@ class NewsFeedViewController: UIViewController {
         }
     }
 
+    private func computeFooterMode() -> NewsFeedFooterView.Mode {
+        guard !repository.items.isEmpty else { return .blank }
+        if !repository.hasMore {
+            return .allLoaded
+        }
+        switch repository.state {
+        case .loading:
+            return .loading
+        case .error(let err):
+            return .error(errorMessage(for: err))
+        case .content, .idle, .empty:
+            return .blank
+        }
+    }
+
+    private func refreshFooter() {
+        let mode = computeFooterMode()
+        let indexPaths = collectionView.indexPathsForVisibleSupplementaryElements(
+            ofKind: NewsFeedFooterView.elementKind
+        )
+        for ip in indexPaths {
+            if let footer = collectionView.supplementaryView(
+                forElementKind: NewsFeedFooterView.elementKind, at: ip
+            ) as? NewsFeedFooterView {
+                footer.config(mode: mode)
+            }
+        }
+    }
+
     private func errorMessage(for error: PaginatorError) -> String {
         switch error {
         case .network:
@@ -189,6 +243,7 @@ class NewsFeedViewController: UIViewController {
             var snapshot = self.dataSource.snapshot()
             snapshot.appendItems(items, toSection: .feed)
             await self.dataSource.apply(snapshot, animatingDifferences: false)
+            self.refreshFooter()
         }
     }
 
@@ -222,6 +277,7 @@ class NewsFeedViewController: UIViewController {
 
         dataSource.apply(snapshot, animatingDifferences: animated)
     }
+    
     override func viewWillTransition(
         to size: CGSize,
         with coordinator: UIViewControllerTransitionCoordinator
@@ -243,12 +299,11 @@ class NewsFeedViewController: UIViewController {
 
 extension NewsFeedViewController: NewsRepositoryDelegate {
     func newsRepository(_ repository: NewsRepository, didChangeState state: FeedListState) {
-        if state != .loading,
-           let rc = collectionView.refreshControl,
-           rc.isRefreshing {
+        if state != .loading, let rc = collectionView.refreshControl, rc.isRefreshing {
             rc.endRefreshing()
         }
         updateStatusChrome()
+        refreshFooter()
     }
 
     func newsRepository(_ repository: NewsRepository, didReplaceItems items: [NewsItem]) {
@@ -267,6 +322,7 @@ extension NewsFeedViewController: NewsRepositoryDelegate {
         if !collectionView.isDragging && !collectionView.isDecelerating {
             flushPendingAppends()
         }
+        refreshFooter()
     }
 }
 
@@ -308,11 +364,23 @@ extension NewsFeedViewController: UICollectionViewDelegate {
 
     func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
         flushPendingAppends()
+        triggerLoadMoreIfNearBottom(scrollView)
     }
 
     func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
         if !decelerate {
             flushPendingAppends()
+            triggerLoadMoreIfNearBottom(scrollView)
+        }
+    }
+
+    private func triggerLoadMoreIfNearBottom(_ scrollView: UIScrollView) {
+        let y = scrollView.contentOffset.y
+        let contentHeight = scrollView.contentSize.height
+        let frameHeight = scrollView.frame.height
+        guard contentHeight > 0 else { return }
+        if y > contentHeight - frameHeight - frameHeight * 0.5 {
+            Task { await repository.loadMore() }
         }
     }
 }
