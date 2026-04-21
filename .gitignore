@@ -90,3 +90,4 @@ docs/
 xWalletDesignSystem
 .claude/settings.local.json
 *.trace/
+xWallet/reown.xcconfig
