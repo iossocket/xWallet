@@ -217,11 +217,13 @@ class NewsFeedViewController: UIViewController {
     private func errorMessage(for error: PaginatorError) -> String {
         switch error {
         case .network:
-            return "Network error. Check your connection and try again."
-        case .unknown(let message):
-            return message
-        default:
-            return "Failed to load. Please try again later."
+            return "You appear to be offline. Check your connection and try again."
+        case .server(let statusCode):
+            return "Server error (\(statusCode)). Please try again later."
+        case .validationFailed:
+            return "Received invalid data. Please try again."
+        case .invalidKey, .store, .unknown, .cancelled:
+            return "Something went wrong. Please try again."
         }
     }
 

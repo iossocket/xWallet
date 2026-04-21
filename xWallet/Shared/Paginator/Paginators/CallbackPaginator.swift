@@ -104,6 +104,13 @@ public final class CallbackPaginator<
             } catch is CancellationError {
                 await cache.set(.failure(.cancelled), for: key)
                 listener(.failure(.cancelled))
+            } catch let paginatorError as PaginatorError {
+                await cache.set(.failure(paginatorError), for: key)
+                listener(.failure(paginatorError))
+            } catch let urlError as URLError {
+                let mapped = PaginatorError.network(urlError.localizedDescription)
+                await cache.set(.failure(mapped), for: key)
+                listener(.failure(mapped))
             } catch {
                 let mappedError = PaginatorError.unknown(String(describing: error))
                 await cache.set(.failure(mappedError), for: key)

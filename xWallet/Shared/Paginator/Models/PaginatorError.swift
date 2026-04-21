@@ -11,6 +11,7 @@ public enum PaginatorError: Error, Sendable, Equatable {
     case invalidKey
     case cancelled
     case network(String)
+    case server(statusCode: Int)
     case store(String)
     case validationFailed
     case unknown(String)

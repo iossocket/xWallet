@@ -25,17 +25,26 @@ struct NewsDataSource: PaginatorDataSource {
         guard let url = components.url else {
             throw PaginatorError.invalidKey
         }
-        let (data, response) = try await httpClient.data(from: url)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            throw PaginatorError.network(
-                "HTTP \((response as? HTTPURLResponse)?.statusCode ?? 0)"
-            )
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await httpClient.data(from: url)
+        } catch let urlError as URLError {
+            throw PaginatorError.network(urlError.localizedDescription)
         }
-        
+
+        guard let http = response as? HTTPURLResponse else {
+            throw PaginatorError.network("Invalid response")
+        }
+        guard (200...299).contains(http.statusCode) else {
+            throw PaginatorError.server(statusCode: http.statusCode)
+        }
+
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let apiResponse = try decoder.decode(NewsAPIResponse.self, from: data)
-        
+
         return PaginatorPage(
             content: apiResponse.items,
             key: key,
