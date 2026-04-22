@@ -6,6 +6,86 @@
 //
 
 import Nuke
+import ReownWalletKit
+import WalletConnectRelay
+import WalletConnectNetworking
+import WalletConnectSigner
+import EthereumKit
+
+final class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegate {
+    var isConnected: Bool = false
+    var onConnect: (() -> Void)?
+    var onDisconnect: ((Error?) -> Void)?
+    var onText: ((String) -> Void)?
+    var request: URLRequest
+
+    private var task: URLSessionWebSocketTask?
+    private lazy var session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+
+    init(request: URLRequest) {
+        self.request = request
+        super.init()
+    }
+
+    func connect() {
+        task = session.webSocketTask(with: request)
+        task?.resume()
+        listen()
+    }
+
+    func disconnect() {
+        task?.cancel(with: .normalClosure, reason: nil)
+        task = nil
+        isConnected = false
+    }
+
+    func write(string: String, completion: (() -> Void)?) {
+        task?.send(.string(string)) { _ in
+            completion?()
+        }
+    }
+
+    private func listen() {
+        task?.receive { [weak self] result in
+            switch result {
+            case .success(.string(let text)):
+                self?.onText?(text)
+            default:
+                break
+            }
+            self?.listen()
+        }
+    }
+
+    // MARK: - URLSessionWebSocketDelegate
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didOpenWithProtocol protocol: String?) {
+        isConnected = true
+        onConnect?()
+    }
+
+    func urlSession(_ session: URLSession, webSocketTask: URLSessionWebSocketTask, didCloseWith closeCode: URLSessionWebSocketTask.CloseCode, reason: Data?) {
+        isConnected = false
+        onDisconnect?(nil)
+    }
+}
+
+struct NativeSocketFactory: WebSocketFactory {
+    func create(with url: URL) -> WebSocketConnecting {
+        NativeWebSocket(request: URLRequest(url: url))
+    }
+}
+
+struct XWalletCryptoProvider: CryptoProvider {
+    func recoverPubKey(signature: WalletConnectSigner.EthereumSignature, message: Data) throws -> Data {
+        let sigData = Data(signature.r + signature.s + [signature.v])
+        return try Secp256k1.recoverPublicKey(message: message, signature: sigData)
+    }
+
+    func keccak256(_ data: Data) -> Data {
+        Keccak256.hash(data)
+    }
+}
 
 enum AppConfiguration {
     static func setup() {
@@ -18,5 +98,24 @@ enum AppConfiguration {
             $0.isDecompressionEnabled = true
         }
         ImagePipeline.shared = pipeline
+        
+        Networking.configure(
+            groupIdentifier: "group.com.iossocket",
+            projectId: Bundle.main.infoDictionary!["WC_PROJECT_ID"] as! String,
+            socketFactory: NativeSocketFactory()
+        )
+
+        do {
+            let metadata = AppMetadata(
+                name: "xWallet",
+                description: "Multi-chain crypto wallet",
+                url: "",
+                icons: [],
+                redirect: try AppMetadata.Redirect(native: "xwallet://", universal: nil)
+            )
+            WalletKit.configure(metadata: metadata, crypto: XWalletCryptoProvider())
+        } catch {
+            print("Failed to configure WalletKit: \(error)")
+        }
     }
 }

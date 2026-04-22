@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.iossocket.xWallet</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>xwallet</string>
+			</array>
+		</dict>
+	</array>
 	<key>WC_PROJECT_ID</key>
 	<string>$(WC_PROJECT_ID)</string>
 </dict>

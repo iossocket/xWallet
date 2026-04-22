@@ -29,10 +29,10 @@ Search the diff for any path where secret material could leak:
 
 ### 2. Keychain Integrity (`.claude/rules/security.md` — Keychain)
 
-If the diff touches `KeychainService.swift` or `WalletStorage.saveSecret`/`loadSecret`/`deleteSecret`:
+If the diff touches `Services/Core/KeychainService.swift`, `Services/Core/WalletSecretDataSource.swift`, or `WalletDataSource.saveSecret`/`loadSecret`/`deleteSecret`:
 
-- [ ] `kSecAttrAccessible` remains `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — reject any weakening
-- [ ] Keychain key format is `wallet_<UUID>` — no new key patterns without justification
+- [ ] `kSecAttrAccessible` remains `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` AND `SecAccessControl` flag remains `.biometryCurrentSet` — reject any weakening of either
+- [ ] Keychain account key format remains one of `wallet_<UUID>` (private key) or `wallet_mnemonic_<UUID>` (mnemonic) — no new key patterns without justification
 - [ ] Secret payload is JSON with `type` discriminator (`"mnemonic"` / `"privateKey"`)
 - [ ] Private key bytes are base64-encoded inside JSON — not raw hex
 - [ ] No new `SecItemAdd` / `SecItemCopyMatching` calls outside `KeychainService`
@@ -41,7 +41,7 @@ If the diff touches `KeychainService.swift` or `WalletStorage.saveSecret`/`loadS
 
 - [ ] Reducers access I/O only through `@Dependency` clients — no direct `KeychainService()`, `URLSession`, `DatabaseQueue`, or `FileManager` in `Reduce` blocks
 - [ ] New dependency clients provide `testValue` that never touches real Keychain or network
-- [ ] `WalletStorage` remains an `actor` — no changes that break serialization
+- [ ] `WalletDataSource` / `WalletSecretDataSource` / `KeychainService` stay plain `struct`s — concurrency safety relies on GRDB `DatabaseQueue` + thread-safe Keychain APIs, not on `actor` isolation. Reject diffs that wrap them in `actor`s or bypass the queue.
 
 ### 4. Input Validation (`.claude/rules/security.md` — Input Validation)
 

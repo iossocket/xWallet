@@ -2,14 +2,17 @@
 
 ## Keychain — Private Key & Mnemonic Storage
 
-The only authorized store for secrets is iOS Keychain via `KeychainService` in `xWallet/Services/KeychainService.swift`.
+The only authorized store for secrets is iOS Keychain via `KeychainService` in `xWallet/Services/Core/KeychainService.swift`. JSON encoding / key-name construction lives in `xWallet/Services/Core/WalletSecretDataSource.swift`.
 
 Checklist:
-- [ ] Accessibility level is `kSecAttrAccessibleWhenUnlockedThisDeviceOnly` — never weaken
-- [ ] Keychain keys follow the pattern `wallet_<UUID>` — see `WalletStorage.saveSecret`
+- [ ] Accessibility is `kSecAttrAccessibleWhenPasscodeSetThisDeviceOnly` combined with a `SecAccessControl` flag of `.biometryCurrentSet` — never weaken either half
+- [ ] Keychain account keys follow these two patterns — see `WalletSecretDataSource.privateKeyAccount` / `mnemonicAccount`:
+  - `wallet_<UUID>` — private-key payload
+  - `wallet_mnemonic_<UUID>` — mnemonic payload
 - [ ] Secrets are JSON-encoded with a `type` discriminator (`"mnemonic"` / `"privateKey"`) before storage
 - [ ] Private key bytes are base64-encoded inside the JSON payload, never stored as raw hex
-- [ ] `WalletStorage` is an `actor` — all Keychain + SQLite access is serialized and concurrency-safe
+- [ ] Concurrency safety comes from the underlying primitives: GRDB `DatabaseQueue` serializes DB I/O and Apple's `SecItem*` APIs are thread-safe. `WalletDataSource` / `WalletSecretDataSource` / `KeychainService` are plain `struct`s — do NOT wrap them in `actor`s.
+- [ ] Atomicity across Keychain + SQLite is NOT provided. Composite operations (e.g. `deleteWallet`) must use a fixed order and be re-runnable so partial failures don't leave orphans.
 
 ## What NEVER Touches Disk, Logs, or Network
 
@@ -26,8 +29,8 @@ Violations to watch for:
 
 ## SQLite (GRDB) — Metadata Only
 
-`WalletStorage` in `xWallet/Services/WalletClient.swift` stores wallet metadata in `wallets.sqlite3`:
-- `wallet_identity` table: id, name, sourceType, chainType, createdAt, isActive
+`WalletDataSource` in `xWallet/Services/Core/WalletDataSource.swift` stores wallet metadata in `wallets.sqlite3` (DB queue set up by `DatabaseService`):
+- `wallet_identity` table: id, name, sourceType, chainType, createdAt, isActive, chainId, starknetAccountType
 - `derived_address` table: walletId, chain, path, address
 
 Checklist:
@@ -50,13 +53,16 @@ All external I/O goes through `@Dependency` clients. This is a security boundary
 
 | Client | Live touches | Test stub |
 |--------|-------------|-----------|
-| `KeychainClient` | iOS Keychain | no-op save, throws on load |
-| `WalletClient` | Keychain + SQLite + crypto signing | returns fixed test identity |
-| `EvmProviderClient` | network RPC | returns a real provider (no secret exposure) |
-| `KeyValueStorageClient` | `UserDefaults` | no-op save, nil load |
+| `WalletClient` | Keychain + SQLite + crypto signing (owns `WalletDataSource`) | returns fixed test identity |
+| `BiometricClient` | `LAContext` biometric prompt | returns success (or configurable) |
+| `EvmProviderClient` / `StarknetProviderClient` | network RPC | returns a real provider (no secret exposure) |
+| `ChainRegistryClient` | SQLite chain list | in-memory stub |
+| `BalanceClient` / `PriceClient` / `ERC20Client` / `SendClient` / `TransactionHistoryClient` | network RPC / HTTP | safe stubs |
+
+Note: there is no dedicated `KeychainClient`. Keychain access is fully owned by `WalletClient` → `WalletDataSource` → `WalletSecretDataSource` → `KeychainService`; reducers must not reach past `WalletClient`. UserDefaults access uses `@Shared(.appStorage(...))` from TCA, not a DI client.
 
 Checklist:
-- [ ] Never call `KeychainService` directly from a reducer — always go through `KeychainClient`
+- [ ] Never call `KeychainService` directly from a reducer — always go through `WalletClient`
 - [ ] Never call `SecItemAdd` / `SecItemCopyMatching` outside `KeychainService`
 - [ ] `testValue` stubs must never touch real Keychain or network
 

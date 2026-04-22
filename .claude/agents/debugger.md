@@ -27,8 +27,8 @@ Determine where the bug lives:
 | `TestStore` received unexpected action | Missing effect or wrong `.send`/`.receive` | Same reducer, check `.run` blocks |
 | `TestStore` missing received action | Effect fires but test doesn't `store.receive` | Test file — add missing `receive` |
 | Dependency throws at runtime | Client `liveValue` | `xWallet/Services/<Client>.swift` |
-| Keychain error `-25300` | Item not found | `KeychainService.swift` — check account key format `wallet_<UUID>` |
-| SQLite error | Migration or query | `WalletClient.swift` — `WalletStorage.migrator` and query methods |
+| Keychain error `-25300` | Item not found | `Services/Core/KeychainService.swift` — check account key format `wallet_<UUID>` (private key) or `wallet_mnemonic_<UUID>` (mnemonic) built by `WalletSecretDataSource` |
+| SQLite error | Migration or query | Migrator in `Services/Core/DatabaseService.swift`; queries in `Services/Core/WalletDataSource.swift` / `ChainDataSource.swift` |
 | UI doesn't update | State not mutated or view not observing | Reducer case returns `.none` too early, or view uses `let` instead of `@Bindable` |
 
 ### 2. Read Before Guessing
@@ -74,11 +74,11 @@ For TCA reducer bugs, trace the full action chain:
 
 | Pitfall | Where to look |
 |---------|--------------|
-| `state.address` is `nil` so `guard` returns `.none` silently | `Wallet.swift:49` — `guard let address = state.address` |
-| Parent reducer handles child success before child does | `AppFeature.swift:55-59` — account success sets wallet address |
-| `force-unwrap` on `EthereumAddress()` returns `nil` for bad input | `Send.swift` — `EthereumAddress(state.toAddress)` |
-| `WalletStorage` is an `actor` — forgetting `await` or `try` | `WalletClient.swift` — all storage calls are `async throws` |
-| `testValue` stub doesn't match test expectations | Check `KeychainClient.testValue` returns `.itemNotFound` on load |
+| Shared state (`@Shared(.activeIdentitySet)`) read while empty → early `.none` return | Features that depend on an active wallet — `Wallet.swift`, `Send.swift`. Check the `guard` against `activeIdentitySet.evm` / `.starknet` |
+| Parent reducer handles child success before child does | `AppFeature.swift` — `.account(.switchWalletResponse(.success))` / `.settings(.importAccount(.presented(...)))` drive launch-phase transitions |
+| Address validation returns `nil` silently | `Send.swift` — `sendClient.validateAddress(state.toAddress, state.chain)` guard; also `EthereumAddress(...)` initializers elsewhere |
+| `WalletClient` closures are `@Sendable async throws` — forgetting `await` / `try` fails silently in `.run { }` | `WalletClient.swift` — call sites in reducers must `try await walletClient.xxx(...)` |
+| `testValue` stub doesn't match test expectations | Override only the closures the test exercises via `withDependencies:`; defaults throw or return fixed identity |
 
 ## Output Format
 
