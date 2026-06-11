@@ -10,7 +10,7 @@ import StarknetKit
 import MultiChainCore
 import Foundation
 
-enum AccountDerivationService {
+enum AccountDerivation {
     static func deriveAddressFromMnemonic(_ mnemonic: String, accountType: AccountType) throws -> (DerivedAddress, Data) {
         switch accountType {
         case .evm:
