@@ -11,6 +11,7 @@ import WalletConnectRelay
 import WalletConnectNetworking
 import WalletConnectSigner
 import EthereumKit
+import TrustKit
 
 final class NativeWebSocket: NSObject, WebSocketConnecting, URLSessionWebSocketDelegate {
     var isConnected: Bool = false
@@ -117,5 +118,26 @@ enum AppConfiguration {
         } catch {
             print("Failed to configure WalletKit: \(error)")
         }
+        
+        TrustKit.setLoggerBlock { msg in
+            print("[TrustKit] \(msg)")
+        }
+        
+        let config: [String: Any] = [
+            kTSKSwizzleNetworkDelegates: false,
+            kTSKPinnedDomains: [
+                "xwallet-news.avx302.workers.dev": [
+                    kTSKEnforcePinning: true,
+                    kTSKIncludeSubdomains: false,
+                    kTSKPublicKeyHashes: [
+                        "y7xVm0TVJNahMr2sZydE2jQH8SquXV9yLF9seROHHHU=",  // Let's Encrypt E7
+                        "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",  // fake backup
+                    ],
+                    kTSKDisableDefaultReportUri: true,
+                ]
+            ]
+        ]
+        
+        TrustKit.initSharedInstance(withConfiguration: config)
     }
 }
