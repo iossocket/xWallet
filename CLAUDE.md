@@ -4,7 +4,7 @@
 
 iOS-native multi-chain crypto wallet built with SwiftUI + TCA (The Composable Architecture).
 Target chains: EVM (Ethereum + L2s) and Starknet. Privacy layer (Railgun/Zcash) planned.
-Minimum deployment: iOS 16.4 / Xcode 16.4 / Swift 5.9.
+Minimum deployment: iOS 18.5 / Xcode 26.5 / Swift 5.9.
 
 ## Module Map
 
@@ -70,7 +70,6 @@ docs/thinking/                    # Design docs & roadmap (gitignored, not shipp
 
 - `swift-composable-architecture` — pointfreeco TCA
 - `GRDB.swift` — SQLite persistence for wallet identities
-- `wallet-core` — trustwallet (WalletCore v4.4.2)
 - `MultiChainKit` / `MultiChainCore` / `EthereumKit` — custom multi-chain SDK (BIP-39, signers, providers)
 - `BigInt` — large number handling for Wei values
 
