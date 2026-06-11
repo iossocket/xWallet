@@ -24,8 +24,8 @@
 ## 2. WalletConnectClient 实现
 
 - [ ] 2.1 创建 `Services/WalletConnectClient.swift`，定义桥接模型：
-  - `WCSession`：封装 SDK 的 `Session`（topic, peerName, peerUrl, peerIcon, chains, methods）
-  - `WCProposal`：封装 SDK 的 `Session.Proposal`（id, peerName, peerUrl, peerIcon, requiredChains, requiredMethods）
+  - `WCSession`：封装 SDK 的 `Session`（topic, peerName, peerUrl, peerIcon, chains, methods, expiryDate）
+  - `WCProposal`：**直接持有 SDK 原始 `Session.Proposal`**，加便捷计算属性（peerName → `proposal.proposer.name`, peerUrl → `proposal.proposer.url`, peerIcon → `proposal.proposer.icons.first`）。不做深度拆解，因为 `AutoNamespaces.build(sessionProposal:)` 需要原始对象
   - `WCRequest`：enum，cases = `.personalSign(message: Data, address: String)`, `.signTypedData(json: String, address: String)`, `.sendTransaction(tx: WCTransactionData)`, `.starknetSignTypedData(json: String)`, `.starknetExecute(calls: [WCStarknetCall])`
   - `WCTransactionData`：封装 eth_sendTransaction 参数（from, to, value, data, gasLimit, chainId）
 - [ ] 2.2 定义 `WalletConnectClient` struct，闭包签名：
@@ -39,54 +39,61 @@
       var disconnect: @Sendable (String) async throws -> Void
       var activeSessions: @Sendable () -> [WCSession]
       var sessionProposals: @Sendable () -> AsyncStream<WCProposal>
-      var sessionRequests: @Sendable () -> AsyncStream<(WCRequest, String, RPCID)>
+      var sessionRequests: @Sendable () -> AsyncStream<(WCRequest, String, RPCID, Blockchain)>
       var sessionDeleted: @Sendable () -> AsyncStream<String>
   }
   ```
+  注：`sessionRequests` 元组第 4 项 `Blockchain` 是请求的链标识（CAIP-2 如 `eip155:1`），多链钱包需要它选择正确的签名账户
 - [ ] 2.3 实现 `liveValue`：
   - `pair`：调用 `WalletKit.instance.pair(uri:)`
   - `approveSession`：调用 `WalletKit.instance.approve(proposalId:namespaces:)`，转换返回的 `Session` 为 `WCSession`
   - `rejectSession`：调用 `WalletKit.instance.rejectSession(proposalId:reason:)`
   - `approveRequest`：调用 `WalletKit.instance.respond(topic:requestId:response: .response(result))`
-  - `rejectRequest`：调用 `WalletKit.instance.respond(topic:requestId:response: .error(...))`
+  - `rejectRequest`：调用 `WalletKit.instance.respond(topic:requestId:response: .error(JSONRPCError(code: 4001, message: "User rejected the request")))`（EIP-1193 标准拒绝码）
   - `disconnect`：调用 `WalletKit.instance.disconnect(topic:)`
   - `activeSessions`：调用 `WalletKit.instance.getSessions()`，转换为 `[WCSession]`
-- [ ] 2.4 实现 `sessionProposals()` AsyncStream：
+- [ ] 2.4 实现 `sessionProposals()` AsyncStream，用 `onTermination` 管理 Combine 订阅生命周期：
   ```swift
   AsyncStream { continuation in
-      WalletKit.instance.sessionProposalPublisher
+      let cancellable = WalletKit.instance.sessionProposalPublisher
           .sink { (proposal, context) in
-              continuation.yield(WCProposal(from: proposal, context: context))
+              continuation.yield(WCProposal(proposal: proposal))
           }
-          .store(in: &cancellables)
+      continuation.onTermination = { _ in
+          cancellable.cancel()
+      }
   }
   ```
-- [ ] 2.5 实现 `sessionRequests()` AsyncStream：桥接 `WalletKit.instance.sessionRequestPublisher`，解析 `request.method` 和 `request.params` 到 `WCRequest` enum：
-  - `"personal_sign"` → `try request.params.get([String].self)` → `.personalSign`
-  - `"eth_signTypedData_v4"` → `try request.params.get([String].self)` → `.signTypedData`
+  注：`WalletConnectClient` 是 struct，不能用 `&cancellables` 存储订阅；`onTermination` 在 AsyncStream consumer 取消时自动清理
+- [ ] 2.5 实现 `sessionRequests()` AsyncStream（同样使用 `onTermination`）：桥接 `WalletKit.instance.sessionRequestPublisher`，解析 `request.method` 和 `request.params` 到 `WCRequest` enum，携带 `request.chainId`：
+  - `"personal_sign"` → `try request.params.get([String].self)` → params[0] 是 hex 编码消息，params[1] 是地址 → `.personalSign`
+  - `"eth_signTypedData_v4"` → `try request.params.get([String].self)` → params[0] 是地址，params[1] 是 JSON → `.signTypedData`
   - `"eth_sendTransaction"` → 解析 tx params → `.sendTransaction`
   - `"starknet_signTypedData"` → `.starknetSignTypedData`
   - `"starknet_execute"` → `.starknetExecute`
-- [ ] 2.6 实现 `sessionDeleted()` AsyncStream：桥接 `WalletKit.instance.sessionDeletePublisher`
+  - yield `(wcRequest, request.topic, request.id, request.chainId)`
+- [ ] 2.6 实现 `sessionDeleted()` AsyncStream（同样使用 `onTermination`）：桥接 `WalletKit.instance.sessionDeletePublisher`，只取 topic 字符串
 - [ ] 2.7 实现 `testValue`：所有闭包返回安全 stub（空数组、no-op、空 AsyncStream）
 - [ ] 2.8 注册到 `DependencyValues`
 
 ## 3. DAppConnect Reducer 实现
 
 - [ ] 3.1 创建 `Features/DApp/DAppConnect.swift`
-- [ ] 3.2 定义 `State`：sessions: [WCSession], pendingProposal: WCProposal?, pendingRequest: (WCRequest, String, RPCID)?, pairURI: String, isConnecting: Bool, errorMessage: String?
-- [ ] 3.3 定义 `Action`：binding, onAppear, pairTapped, pairResponse(Result), sessionProposalReceived(WCProposal), approveProposalTapped, rejectProposalTapped, approveProposalResponse(Result), requestReceived((WCRequest, String, RPCID)), approveRequestTapped, rejectRequestTapped, approveRequestResponse(Result), disconnectTapped(String), disconnectResponse(Result), sessionDeleted(String), refreshSessions
+- [ ] 3.2 定义 `State`：sessions: [WCSession], pendingProposal: WCProposal?, pendingRequest: (WCRequest, String, RPCID, Blockchain)?, pairURI: String, isConnecting: Bool, errorMessage: String?
+- [ ] 3.3 定义 `Action`：binding, onAppear, pairTapped, pairResponse(Result), sessionProposalReceived(WCProposal), approveProposalTapped, rejectProposalTapped, approveProposalResponse(Result), requestReceived((WCRequest, String, RPCID, Blockchain)), approveRequestTapped, rejectRequestTapped, approveRequestResponse(Result), disconnectTapped(String), disconnectResponse(Result), sessionDeleted(String), refreshSessions
 - [ ] 3.4 实现 `.onAppear`：加载 `activeSessions`，启动三个长期运行的 Effect 监听 `sessionProposals`、`sessionRequests`、`sessionDeleted`
-- [ ] 3.5 实现 `.pairTapped`：验证 URI 非空，构造 `WalletConnectURI(string:)`，调用 `walletConnect.pair(uri)`
+- [ ] 3.5 实现 `.pairTapped`：验证 URI 非空，构造 `try WalletConnectURI(uriString:)`（注意：`init?(string:)` 已废弃，使用 throwing 版本），调用 `walletConnect.pair(uri)`
 - [ ] 3.6 实现 `.pairResponse`：成功时清空 URI，失败时显示错误
 - [ ] 3.7 实现 `.sessionProposalReceived`：保存到 `pendingProposal`
 - [ ] 3.8 实现 `.approveProposalTapped`：
   - 调用 `walletClient.activeIdentitySet()` 获取活跃钱包地址
-  - 使用 `AutoNamespaces.build(sessionProposal:chains:methods:events:accounts:)` 构造 namespaces
+  - 构造 CAIP-10 `Account` 数组：`Account(blockchain: Blockchain("eip155:1")!, address: walletAddress)` — 每条支持的链一个 Account
+  - 使用 `AutoNamespaces.build(sessionProposal: pendingProposal.proposal, chains:methods:events:accounts:)` 构造 namespaces — 第一个参数直接传 `WCProposal` 内持有的原始 `Session.Proposal`
+  - 如果 `AutoNamespaces.build` 抛出 `AutoNamespacesError`，用 `RejectionReason(from: error)` 构造拒绝原因并自动 reject
   - 调用 `walletConnect.approveSession(proposalId, namespaces)`
 - [ ] 3.9 实现 `.rejectProposalTapped`：调用 `walletConnect.rejectSession(proposalId, .userRejected)`，清空 `pendingProposal`
 - [ ] 3.10 实现 `.approveProposalResponse`：成功时将 session 加入 `sessions` 列表，清空 `pendingProposal`
-- [ ] 3.11 实现 `.requestReceived`：保存到 `pendingRequest`
+- [ ] 3.11 实现 `.requestReceived`：保存到 `pendingRequest`（包含 WCRequest, topic, RPCID, Blockchain），`Blockchain.namespace` 用于判断是 EVM 还是 Starknet 请求
 - [ ] 3.12 实现 `.approveRequestTapped`：根据 `WCRequest` 类型分发处理：
   - `.personalSign(message, addr)` → `walletClient.activeEvmAccount(provider)` → `account.signMessage(message)` → `"0x" + sig.rawData.hexString`
   - `.signTypedData(json, addr)` → JSON 解码为 `EIP712TypedData` → `account.signTypedData(typedData)` → hex 签名
