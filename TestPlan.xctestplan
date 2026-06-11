@@ -1,0 +1,25 @@
+{
+  "configurations" : [
+    {
+      "id" : "00000000-0000-0000-0000-000000000001",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "testTimeoutsEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:xWallet.xcodeproj",
+        "identifier" : "5AB3E6062F4C450A00B70BC6",
+        "name" : "xWalletTests"
+      }
+    }
+  ],
+  "version" : 1
+}

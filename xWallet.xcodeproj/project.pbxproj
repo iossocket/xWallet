@@ -8,8 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		5A1EE22C2F8C7FA400B2D42C /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1EE22B2F8C7FA400B2D42C /* Alamofire */; };
-		5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB372ED323C9005AF084 /* WalletCore */; };
-		5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = 5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */; };
+		5A9ADB612FA02CB900F9DCE6 /* SnapshotTesting in Frameworks */ = {isa = PBXBuildFile; productRef = 5A9ADB602FA02CB900F9DCE6 /* SnapshotTesting */; };
+		5A9ADCF22FA08B9A00F9DCE6 /* TestPlan.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = 5A9ADCF12FA08B9A00F9DCE6 /* TestPlan.xctestplan */; };
+		5A9ADCF52FA0A58D00F9DCE6 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5A9ADCF42FA0A58D00F9DCE6 /* FirebaseCore */; };
+		5A9ADCF72FA0A58D00F9DCE6 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = 5A9ADCF62FA0A58D00F9DCE6 /* FirebaseCrashlytics */; };
+		5A9ADCF92FA0A58D00F9DCE6 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = 5A9ADCF82FA0A58D00F9DCE6 /* FirebaseRemoteConfig */; };
 		5AAB80662F8FC0B200247D2C /* ReownWalletKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AAB80652F8FC0B200247D2C /* ReownWalletKit */; };
 		5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */; };
 		5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E32F41D4AD00B70BC6 /* MultiChainCore */; };
@@ -17,6 +20,8 @@
 		5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5E72F41D4AD00B70BC6 /* StarknetKit */; };
 		5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E5EA2F42C7C600B70BC6 /* ComposableArchitecture */; };
 		5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = 5AB3E6272F4ED0F600B70BC6 /* GRDB */; };
+		5AD883D62F99AE7C00BBB506 /* TrustKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD883D52F99AE7C00BBB506 /* TrustKit */; };
+		5AD883DC2F9EFBB000BBB506 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 5AD883DB2F9EFBB000BBB506 /* Localizable.xcstrings */; };
 		5AFE99422F67A50300A6E68F /* SnapKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99412F67A50300A6E68F /* SnapKit */; };
 		5AFE99452F67A8A000A6E68F /* Nuke in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99442F67A8A000A6E68F /* Nuke */; };
 		5AFE99472F67A8A000A6E68F /* NukeExtensions in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFE99462F67A8A000A6E68F /* NukeExtensions */; };
@@ -34,7 +39,9 @@
 
 /* Begin PBXFileReference section */
 		5A54CB252ED3219E005AF084 /* xWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = xWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5A9ADCF12FA08B9A00F9DCE6 /* TestPlan.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = TestPlan.xctestplan; sourceTree = "<group>"; };
 		5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = xWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AD883DB2F9EFBB000BBB506 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -43,6 +50,7 @@
 			membershipExceptions = (
 				Features/Market/CandleShaders.metal,
 				Info.plist,
+				reown.xcconfig,
 			);
 			target = 5A54CB242ED3219E005AF084 /* xWallet */;
 		};
@@ -80,17 +88,19 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5A54CB382ED323C9005AF084 /* WalletCore in Frameworks */,
+				5A9ADCF52FA0A58D00F9DCE6 /* FirebaseCore in Frameworks */,
 				5AB3E5E42F41D4AD00B70BC6 /* MultiChainCore in Frameworks */,
 				5AB3E5EB2F42C7C600B70BC6 /* ComposableArchitecture in Frameworks */,
+				5A9ADCF92FA0A58D00F9DCE6 /* FirebaseRemoteConfig in Frameworks */,
 				5AFE99472F67A8A000A6E68F /* NukeExtensions in Frameworks */,
 				5AB3E6282F4ED0F600B70BC6 /* GRDB in Frameworks */,
 				5AB3E5E62F41D4AD00B70BC6 /* MultiChainKit in Frameworks */,
 				5AB3E5E22F41D4AD00B70BC6 /* EthereumKit in Frameworks */,
-				5A54CB3A2ED323C9005AF084 /* WalletCoreSwiftProtobuf in Frameworks */,
 				5AAB80662F8FC0B200247D2C /* ReownWalletKit in Frameworks */,
 				5AB3E5E82F41D4AD00B70BC6 /* StarknetKit in Frameworks */,
+				5AD883D62F99AE7C00BBB506 /* TrustKit in Frameworks */,
 				5A1EE22C2F8C7FA400B2D42C /* Alamofire in Frameworks */,
+				5A9ADCF72FA0A58D00F9DCE6 /* FirebaseCrashlytics in Frameworks */,
 				5AFE99422F67A50300A6E68F /* SnapKit in Frameworks */,
 				5AFE99452F67A8A000A6E68F /* Nuke in Frameworks */,
 			);
@@ -100,6 +110,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A9ADB612FA02CB900F9DCE6 /* SnapshotTesting in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -109,6 +120,8 @@
 		5A54CB1C2ED3219E005AF084 = {
 			isa = PBXGroup;
 			children = (
+				5A9ADCF12FA08B9A00F9DCE6 /* TestPlan.xctestplan */,
+				5AD883DB2F9EFBB000BBB506 /* Localizable.xcstrings */,
 				5A54CB272ED3219E005AF084 /* xWallet */,
 				5AB3E6082F4C450A00B70BC6 /* xWalletTests */,
 				5A54CB262ED3219E005AF084 /* Products */,
@@ -144,8 +157,6 @@
 			);
 			name = xWallet;
 			packageProductDependencies = (
-				5A54CB372ED323C9005AF084 /* WalletCore */,
-				5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */,
 				5AB3E5E12F41D4AD00B70BC6 /* EthereumKit */,
 				5AB3E5E32F41D4AD00B70BC6 /* MultiChainCore */,
 				5AB3E5E52F41D4AD00B70BC6 /* MultiChainKit */,
@@ -157,6 +168,10 @@
 				5AFE99462F67A8A000A6E68F /* NukeExtensions */,
 				5A1EE22B2F8C7FA400B2D42C /* Alamofire */,
 				5AAB80652F8FC0B200247D2C /* ReownWalletKit */,
+				5AD883D52F99AE7C00BBB506 /* TrustKit */,
+				5A9ADCF42FA0A58D00F9DCE6 /* FirebaseCore */,
+				5A9ADCF62FA0A58D00F9DCE6 /* FirebaseCrashlytics */,
+				5A9ADCF82FA0A58D00F9DCE6 /* FirebaseRemoteConfig */,
 			);
 			productName = xWallet;
 			productReference = 5A54CB252ED3219E005AF084 /* xWallet.app */;
@@ -180,6 +195,7 @@
 			);
 			name = xWalletTests;
 			packageProductDependencies = (
+				5A9ADB602FA02CB900F9DCE6 /* SnapshotTesting */,
 			);
 			productName = xWalletTests;
 			productReference = 5AB3E6072F4C450A00B70BC6 /* xWalletTests.xctest */;
@@ -193,7 +209,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2610;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					5A54CB242ED3219E005AF084 = {
 						CreatedOnToolsVersion = 16.4;
@@ -211,11 +227,11 @@
 			knownRegions = (
 				en,
 				Base,
+				"zh-Hans",
 			);
 			mainGroup = 5A54CB1C2ED3219E005AF084;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */,
 				5AB3E5E02F41D4AD00B70BC6 /* XCLocalSwiftPackageReference "../../../../../../../Volumes/PSSD/projects/MultiChainKit" */,
 				5AB3E5E92F42C7C600B70BC6 /* XCRemoteSwiftPackageReference "swift-composable-architecture" */,
 				5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */,
@@ -223,6 +239,9 @@
 				5AFE99432F67A8A000A6E68F /* XCRemoteSwiftPackageReference "Nuke" */,
 				5A1EE22A2F8C7FA400B2D42C /* XCRemoteSwiftPackageReference "alamofire" */,
 				5AAB80642F8FC0B200247D2C /* XCRemoteSwiftPackageReference "reown-swift" */,
+				5AD883D42F99AE7C00BBB506 /* XCRemoteSwiftPackageReference "trustkit" */,
+				5A9ADB5F2FA02CB900F9DCE6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+				5A9ADCF32FA0A58D00F9DCE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A54CB262ED3219E005AF084 /* Products */;
@@ -240,6 +259,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AD883DC2F9EFBB000BBB506 /* Localizable.xcstrings in Resources */,
+				5A9ADCF22FA08B9A00F9DCE6 /* TestPlan.xctestplan in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -283,6 +304,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -339,6 +361,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "xWallet/xWallet-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -349,6 +372,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -398,6 +422,7 @@
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "xWallet/xWallet-Bridging-Header.h";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -495,6 +520,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.iossocket.xWalletTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited)";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
@@ -574,12 +600,20 @@
 				minimumVersion = 5.11.2;
 			};
 		};
-		5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */ = {
+		5A9ADB5F2FA02CB900F9DCE6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/trustwallet/wallet-core";
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
 			requirement = {
-				kind = exactVersion;
-				version = 4.4.2;
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.19.2;
+			};
+		};
+		5A9ADCF32FA0A58D00F9DCE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.12.1;
 			};
 		};
 		5AAB80642F8FC0B200247D2C /* XCRemoteSwiftPackageReference "reown-swift" */ = {
@@ -606,6 +640,14 @@
 				version = 7.10.0;
 			};
 		};
+		5AD883D42F99AE7C00BBB506 /* XCRemoteSwiftPackageReference "trustkit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/datatheorem/trustkit";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.0.7;
+			};
+		};
 		5AFE99402F67A50300A6E68F /* XCRemoteSwiftPackageReference "SnapKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SnapKit/SnapKit.git";
@@ -630,15 +672,25 @@
 			package = 5A1EE22A2F8C7FA400B2D42C /* XCRemoteSwiftPackageReference "alamofire" */;
 			productName = Alamofire;
 		};
-		5A54CB372ED323C9005AF084 /* WalletCore */ = {
+		5A9ADB602FA02CB900F9DCE6 /* SnapshotTesting */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */;
-			productName = WalletCore;
+			package = 5A9ADB5F2FA02CB900F9DCE6 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
 		};
-		5A54CB392ED323C9005AF084 /* WalletCoreSwiftProtobuf */ = {
+		5A9ADCF42FA0A58D00F9DCE6 /* FirebaseCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 5A54CB362ED323C9005AF084 /* XCRemoteSwiftPackageReference "wallet-core" */;
-			productName = WalletCoreSwiftProtobuf;
+			package = 5A9ADCF32FA0A58D00F9DCE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		5A9ADCF62FA0A58D00F9DCE6 /* FirebaseCrashlytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A9ADCF32FA0A58D00F9DCE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCrashlytics;
+		};
+		5A9ADCF82FA0A58D00F9DCE6 /* FirebaseRemoteConfig */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A9ADCF32FA0A58D00F9DCE6 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseRemoteConfig;
 		};
 		5AAB80652F8FC0B200247D2C /* ReownWalletKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -670,6 +722,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5AB3E6262F4ED0F600B70BC6 /* XCRemoteSwiftPackageReference "GRDB" */;
 			productName = GRDB;
+		};
+		5AD883D52F99AE7C00BBB506 /* TrustKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AD883D42F99AE7C00BBB506 /* XCRemoteSwiftPackageReference "trustkit" */;
+			productName = TrustKit;
 		};
 		5AFE99412F67A50300A6E68F /* SnapKit */ = {
 			isa = XCSwiftPackageProductDependency;
