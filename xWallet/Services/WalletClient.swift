@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Dependencies
+import ComposableArchitecture
 import MultiChainKit
 import MultiChainCore
 import EthereumKit
@@ -17,6 +17,7 @@ enum ChainConfig {
     case starknet(accountType: StarknetAccountType, chainId: StarknetChainId)
 }
 
+@DependencyClient
 struct WalletClient {
     var createWallet: @Sendable (String?, AccountType) async throws -> WalletIdentity?
     var importMnemonic: @Sendable (String, String?, AccountType) async throws -> WalletIdentity?
@@ -32,11 +33,11 @@ struct WalletClient {
 
 extension WalletClient: DependencyKey {
     static var liveValue: WalletClient {
-        let store = WalletDataSource(dbQueue: DatabaseService.dbQueue, securityStore: KeychainService())
+        @Dependency(\.walletRepository) var store
         return WalletClient(
             createWallet: { name, accountType in
                 let mnemonic = try BIP39.generateMnemonic()
-                let (address, pk) = try AccountDerivationService.deriveAddressFromMnemonic(mnemonic, accountType: accountType)
+                let (address, pk) = try AccountDerivation.deriveAddressFromMnemonic(mnemonic, accountType: accountType)
                 let identity = WalletIdentity(
                     id: UUID(),
                     name: name ?? defaultWalletName(accountType: accountType),
@@ -45,8 +46,8 @@ extension WalletClient: DependencyKey {
                     createdAt: Date(),
                     derivedAddresses: [address]
                 )
-                try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
-                try store.saveSecret(.privateKey(pk, accountType), for: identity.id)
+                try store.saveSecret(.mnemonic(mnemonic), identity.id)
+                try store.saveSecret(.privateKey(pk, accountType), identity.id)
                 try store.saveIdentity(identity)
                 return identity
             },
@@ -54,7 +55,7 @@ extension WalletClient: DependencyKey {
                 guard BIP39.validate(mnemonic) else {
                     throw WalletError.invalidMnemonic
                 }
-                let (address, pk) = try AccountDerivationService.deriveAddressFromMnemonic(mnemonic, accountType: accountType)
+                let (address, pk) = try AccountDerivation.deriveAddressFromMnemonic(mnemonic, accountType: accountType)
                 let identity = WalletIdentity(
                     id: UUID(),
                     name: name ?? defaultWalletName(accountType: accountType),
@@ -63,8 +64,8 @@ extension WalletClient: DependencyKey {
                     createdAt: Date(),
                     derivedAddresses: [address]
                 )
-                try store.saveSecret(.mnemonic(mnemonic), for: identity.id)
-                try store.saveSecret(.privateKey(pk, accountType), for: identity.id)
+                try store.saveSecret(.mnemonic(mnemonic), identity.id)
+                try store.saveSecret(.privateKey(pk, accountType), identity.id)
                 try store.saveIdentity(identity)
                 return identity
             },
@@ -72,7 +73,7 @@ extension WalletClient: DependencyKey {
                 let pkData = try PrivateKeyUtils.normalizePrivateKey(hex: hex)
                 switch config {
                 case .evm:
-                    let address = try AccountDerivationService.deriveAddressFromPrivateKey(pkData, accountType: AccountType.evm)
+                    let address = try AccountDerivation.deriveAddressFromPrivateKey(pkData, accountType: AccountType.evm)
                     let identity = WalletIdentity(
                         id: UUID(),
                         name: name ?? defaultWalletName(accountType: .evm),
@@ -81,11 +82,11 @@ extension WalletClient: DependencyKey {
                         createdAt: Date(),
                         derivedAddresses: [address]
                     )
-                    try store.saveSecret(.privateKey(pkData, .evm), for: identity.id)
+                    try store.saveSecret(.privateKey(pkData, .evm), identity.id)
                     try store.saveIdentity(identity)
                     return identity
                 case .starknet(let accountType, let chainId):
-                    let address = try AccountDerivationService.deriveAddressFromPrivateKey(pkData, accountType: .starknet(accountType))
+                    let address = try AccountDerivation.deriveAddressFromPrivateKey(pkData, accountType: .starknet(accountType))
                     let type: AccountType = .starknet(accountType)
                     let identity = WalletIdentity(
                         id: UUID(),
@@ -96,7 +97,7 @@ extension WalletClient: DependencyKey {
                         chainId: chainId.rawValue,
                         derivedAddresses: [address]
                     )
-                    try store.saveSecret(.privateKey(pkData, type), for: identity.id)
+                    try store.saveSecret(.privateKey(pkData, type), identity.id)
                     try store.saveIdentity(identity)
                     return identity
                 }
@@ -121,7 +122,7 @@ extension WalletClient: DependencyKey {
                 guard let identity = identitySet.evm else {
                     throw WalletError.chainMismatch
                 }
-                let secret = try store.loadSecret(for: identity.id, reason: "activating ethereum account: \(identity.name)")
+                let secret = try store.loadSecret(identity.id, "activating ethereum account: \(identity.name)")
                 switch secret {
                 case .mnemonic(let mnemonic):
                     return try EthereumAccount(mnemonic: mnemonic, path: .ethereum, provider: provider)
@@ -149,39 +150,9 @@ extension WalletClient: DependencyKey {
                 try store.activeIdentitySet()
             },
             deleteWallet: { id in
-                try store.deleteSecret(for: id)
+                try store.deleteSecret(id)
                 try store.deleteIdentity(id)
             }
-        )
-    }
-
-    static var testValue: WalletClient {
-        let _ = "test test test test test test test test test test test junk"
-        let testIdentity = WalletIdentity(
-            id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            name: "Test Wallet",
-            sourceType: .mnemonic,
-            accountType: .evm,
-            createdAt: Date(),
-            derivedAddresses: [
-                DerivedAddress(
-                    chain: .evm,
-                    path: "m/44'/60'/0'/0/0",
-                    address: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-                )
-            ]
-        )
-        return WalletClient(
-            createWallet: { _, _ in testIdentity },
-            importMnemonic: { _, _, _ in testIdentity },
-            importPrivateKey: { _, _, _ in testIdentity },
-            listWallets: { [testIdentity] },
-            switchWallet: { _ in nil },
-            activeEvmAccount: { _ in throw WalletError.notFound },
-            activeStarknetAccount: { throw WalletError.notFound },
-            starknetAccount: { _, _ in throw WalletError.notFound },
-            activeIdentitySet: { ActiveWalletIdentitySet(evm: testIdentity) },
-            deleteWallet: { _ in }
         )
     }
 }
@@ -210,8 +181,8 @@ extension WalletClient {
         }
     }
 
-    private static func makeStarknetAccount(identity: WalletIdentity, store: WalletDataSource, reason: String) throws -> StarknetAccount {
-        let secret = try store.loadSecret(for: identity.id, reason: reason)
+    private static func makeStarknetAccount(identity: WalletIdentity, store: WalletRepository, reason: String) throws -> StarknetAccount {
+        let secret = try store.loadSecret(identity.id, reason)
         let chain: Starknet = identity.chainId == "SN_MAIN" ? .mainnet : .sepolia
         let provider = StarknetProvider(chain: chain)
         guard let snAccountType = identity.accountType.starknetAccountType else {

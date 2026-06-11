@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import Dependencies
+import ComposableArchitecture
 import EthereumKit
 import MultiChainKit
 import MultiChainCore
@@ -34,8 +34,9 @@ enum ChainAccount: Sendable {
     case starknet(StarknetAccount, StarknetProvider)
 }
 
+@DependencyClient
 struct SendClient {
-    var validateAddress: @Sendable (String, Chain) -> Bool
+    var validateAddress: @Sendable (String, Chain) -> Bool = { _,_ in return false }
     var estimateFee: @Sendable (SendRequest, ChainAccount) async throws -> FeeEstimate
     var send: @Sendable (SendRequest, ChainAccount) async throws -> String
     var waitForConfirmation: @Sendable (String, Chain) async throws -> TxResult
@@ -101,15 +102,6 @@ extension SendClient: DependencyKey {
                     return receipt.isSuccess ? .success : .reverted(receipt.revertReason)
                 }
             }
-        )
-    }
-
-    static var testValue: SendClient {
-        SendClient(
-            validateAddress: { _, _ in true },
-            estimateFee: { _, _ in fatalError() },
-            send: { _, _ in "0xdeadbeef" },
-            waitForConfirmation: { _, _ in fatalError() }
         )
     }
 }

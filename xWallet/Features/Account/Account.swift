@@ -72,7 +72,7 @@ struct Account {
     }
     
     @Dependency(\.walletClient) var walletClient
-    @Dependency(\.starknetProvider) var starknetProvider
+    @Dependency(\.starknetRPCService) var starknetRPCService
     
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -131,8 +131,8 @@ struct Account {
                         await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
                     }
                 }
-                return .run { [deployState, starknetProvider] send in
-                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                return .run { [deployState, starknetRPCService] send in
+                    let deployed = try await starknetRPCService.isAccountDeployed(deployState.address, deployState.starknet)
                     await send(.checkDeployStatusResponse(deployState, .success(deployed)))
                 } catch: { error, send in
                     await send(.checkDeployStatusResponse(deployState, .failure(error)))
@@ -176,8 +176,8 @@ struct Account {
                         await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
                     }
                 }
-                return .run { [deployState, starknetProvider] send in
-                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                return .run { [deployState, starknetRPCService] send in
+                    let deployed = try await starknetRPCService.isAccountDeployed(deployState.address, deployState.starknet)
                     await send(.checkDeployStatusResponse(deployState, .success(deployed)))
                 } catch: { error, send in
                     await send(.checkDeployStatusResponse(deployState, .failure(error)))
@@ -217,8 +217,8 @@ struct Account {
                         await send(.switchWalletResponse(Result { try await walletClient.switchWallet(identity.id) }))
                     }
                 }
-                return .run { [deployState, starknetProvider] send in
-                    let deployed = try await starknetProvider.isAccountDeployed(deployState.address, deployState.starknet)
+                return .run { [deployState, starknetRPCService] send in
+                    let deployed = try await starknetRPCService.isAccountDeployed(deployState.address, deployState.starknet)
                     await send(.checkDeployStatusResponse(deployState, .success(deployed)))
                 } catch: { error, send in
                     await send(.checkDeployStatusResponse(deployState, .failure(error)))

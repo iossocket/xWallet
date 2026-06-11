@@ -6,13 +6,15 @@ struct ContentView: View {
 
     var body: some View {
         TabView(selection: $store.selectedTab.sending(\.tabSelected)) {
+
             WalletTabView(
                 store: store.scope(state: \.wallet, action: \.wallet)
             )
             .tabItem { Label("Wallet", systemImage: "wallet.pass.fill") }
             .tag(Tab.wallet)
 
-            Text("Market")
+            CandleChartBridge()
+                .ignoresSafeArea()
                 .tabItem { Label("Market", systemImage: "chart.bar.fill") }
                 .tag(Tab.market)
 

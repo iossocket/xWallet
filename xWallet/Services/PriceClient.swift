@@ -7,32 +7,20 @@
 
 import Dependencies
 import Foundation
+import ComposableArchitecture
 
 // MARK: - TCA Dependency
 
+@DependencyClient
 struct PriceClient {
     var fetchPrices: @Sendable (String, [String]) async throws -> [String: Double]
 }
 
 extension PriceClient: DependencyKey {
     static var liveValue: PriceClient {
-        live()
-    }
-
-    static var testValue: PriceClient {
-        PriceClient(
-            fetchPrices: { _, symbols in
-                Dictionary(uniqueKeysWithValues: symbols.map { ($0, 1.0) })
-            }
-        )
-    }
-}
-
-extension PriceClient {
-    static func live(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> PriceClient {
         let resolver: PriceIdResolverService = StaticPriceIdResolverService()
-        let coinGecko = CoinGeckoPriceProvider(resolver: resolver, httpClient: httpClient)
-        let defiLlama = DefiLlamaPriceProvider(resolver: resolver, httpClient: httpClient)
+        let coinGecko = CoinGeckoPriceProvider(resolver: resolver, httpClient: AppHTTPClient.live)
+        let defiLlama = DefiLlamaPriceProvider(resolver: resolver, httpClient: AppHTTPClient.live)
         let repository = PriceRepository(coinGecko: coinGecko, defiLlama: defiLlama)
 
         return PriceClient(

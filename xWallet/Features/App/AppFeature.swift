@@ -62,8 +62,8 @@ struct AppFeature {
 
     @Dependency(\.walletClient) var walletClient
     @Dependency(\.chainRegistry) var chainRegistry
-    @Dependency(\.biometricClient) var biometricClient
-    @Dependency(\.date.now) var now
+    @Dependency(\.biometricService) var biometricService
+    @Dependency(\.date) var date
     
     var body: some ReducerOf<Self> {
         Scope(state: \.account, action: \.account) {
@@ -75,7 +75,7 @@ struct AppFeature {
         Scope(state: \.wallet, action: \.wallet) {
             Wallet()
         }
-        Reduce { [walletClient, chainRegistry, biometricClient, now] state, action in
+        Reduce { [walletClient, chainRegistry, biometricService, date] state, action in
             switch action {
             case .tabSelected(let tab):
                 state.selectedTab = tab
@@ -139,7 +139,7 @@ struct AppFeature {
             // MARK: - Biometric Lock
 
             case .scenePhaseChanged(.background):
-                state.backgroundedAt = now
+                state.backgroundedAt = date.now
                 state.showPrivacyOverlay = true
                 state.needsAuth = false
                 return .none
@@ -156,7 +156,7 @@ struct AppFeature {
                     return .none
                 }
                 if let bg = state.backgroundedAt,
-                   now.timeIntervalSince(bg) > TimeInterval(state.lockTimeout) {
+                   date.now.timeIntervalSince(bg) > TimeInterval(state.lockTimeout) {
                     state.needsAuth = true
                     state.backgroundedAt = nil
                     return .send(.authenticate)
@@ -171,7 +171,7 @@ struct AppFeature {
 
             case .checkBiometric:
                 return .run { send in
-                    let status = biometricClient.checkAvailability()
+                    let status = biometricService.checkAvailability()
                     await send(.biometricStatusChecked(status))
                 }
 
@@ -189,7 +189,7 @@ struct AppFeature {
 
             case .authenticate:
                 return .run { send in
-                    try await biometricClient.authenticate("Verify identity to continue")
+                    try await biometricService.authenticate("Verify identity to continue")
                     await send(.authenticateResponse(.success(())))
                 } catch: { error, send in
                     await send(.authenticateResponse(.failure(error)))

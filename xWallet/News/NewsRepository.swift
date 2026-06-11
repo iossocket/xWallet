@@ -32,7 +32,7 @@ final class NewsRepository {
     private let paginator: any Paginator<NewsItem>
     private var nextKey: String?
 
-    init(paginator: any Paginator<NewsItem> = NewsPaginatorFactory.make()) {
+    init(paginator: any Paginator<NewsItem> = NewsPaginatorFactory.make(httpClient: AppHTTPClient.sslLive)) {
         self.paginator = paginator
     }
 

@@ -9,8 +9,9 @@ import Foundation
 import EthereumKit
 import MultiChainKit
 import BigInt
-import Dependencies
+import ComposableArchitecture
 
+@DependencyClient
 struct ERC20Client {
     var balanceOf: @Sendable (String, ERC20Token, Chain) async throws -> BigUInt
     var transfer: @Sendable (String, BigUInt, ERC20Token, EthereumAccount) async throws -> String
@@ -18,94 +19,76 @@ struct ERC20Client {
 }
 
 extension ERC20Client: DependencyKey {
-    static var liveValue: ERC20Client {
-        ERC20Client(
-            balanceOf: { ownerAddress, token, chain in
-                guard let contractAddr = EthereumAddress(token.address),
-                      let owner = EthereumAddress(ownerAddress) else {
-                    throw ERC20Error.invalidAddress
-                }
-
-                let provider = EthereumProvider(chain: chain.toEvmChain())
-                let contract = try EthereumContract(
-                    address: contractAddr,
-                    abiJson: ERC20ABI.evm,
-                    provider: provider
-                )
-
-                let balance: BigUInt = try await contract.readSingle(
-                    functionName: "balanceOf",
-                    args: [.address(owner)]
-                )
-                return balance
-            },
-            transfer: { toAddress, amount, token, account in
-                guard let contractAddr = EthereumAddress(token.address),
-                      let to = EthereumAddress(toAddress) else {
-                    throw ERC20Error.invalidAddress
-                }
-                
-                guard let provider = account.provider as? EthereumProvider else {
-                    throw ERC20Error.invalidAccount
-                }
-
-                let contract = try EthereumContract(
-                    address: contractAddr,
-                    abiJson: ERC20ABI.evm,
-                    provider: provider
-                )
-
-                return try await contract.write(
-                    functionName: "transfer",
-                    args: [
-                        .address(to),
-                        .uint256(Wei(amount))
-                    ],
-                    account: account
-                )
-            },
-            tokenInfo: { contractAddress, chain in
-                guard let contractAddr = EthereumAddress(contractAddress) else {
-                    throw ERC20Error.invalidAddress
-                }
-                let provider = EthereumProvider(chain: chain.toEvmChain())
-                let contract = try EthereumContract(
-                    address: contractAddr,
-                    abiJson: ERC20ABI.evm,
-                    provider: provider
-                )
-                
-                async let symbol: String = contract.readSingle(functionName: "symbol")
-                async let decimals: UInt8 = contract.readSingle(functionName: "decimals")
-                async let name: String = contract.readSingle(functionName: "name")
-                let (s, d, n) = try await (symbol, decimals, name)
-                
-                return ERC20Token(
-                    chainId: String(provider.chain.chainId),
-                    address: contractAddress,
-                    symbol: s,
-                    decimals: Int(d),
-                    name: n
-                )
+    static let liveValue = Self(
+        balanceOf: { ownerAddress, token, chain in
+            guard let contractAddr = EthereumAddress(token.address),
+                  let owner = EthereumAddress(ownerAddress) else {
+                throw ERC20Error.invalidAddress
             }
-        )
-    }
 
-    static var testValue: ERC20Client {
-        ERC20Client(
-            balanceOf: { _, _, _ in BigUInt(1_000_000_000_000_000_000) }, // 1 token
-            transfer: { _, _, _, _ in "0xdeadbeef" },
-            tokenInfo: { address, chain in
-                ERC20Token(
-                    chainId: String(chain.chainId),
-                    address: address,
-                    symbol: "TEST",
-                    decimals: 18,
-                    name: "Test Token"
-                )
+            let provider = EthereumProvider(chain: chain.toEvmChain())
+            let contract = try EthereumContract(
+                address: contractAddr,
+                abiJson: ERC20ABI.evm,
+                provider: provider
+            )
+
+            let balance: BigUInt = try await contract.readSingle(
+                functionName: "balanceOf",
+                args: [.address(owner)]
+            )
+            return balance
+        },
+        transfer: { toAddress, amount, token, account in
+            guard let contractAddr = EthereumAddress(token.address),
+                  let to = EthereumAddress(toAddress) else {
+                throw ERC20Error.invalidAddress
             }
-        )
-    }
+            
+            guard let provider = account.provider as? EthereumProvider else {
+                throw ERC20Error.invalidAccount
+            }
+
+            let contract = try EthereumContract(
+                address: contractAddr,
+                abiJson: ERC20ABI.evm,
+                provider: provider
+            )
+
+            return try await contract.write(
+                functionName: "transfer",
+                args: [
+                    .address(to),
+                    .uint256(Wei(amount))
+                ],
+                account: account
+            )
+        },
+        tokenInfo: { contractAddress, chain in
+            guard let contractAddr = EthereumAddress(contractAddress) else {
+                throw ERC20Error.invalidAddress
+            }
+            let provider = EthereumProvider(chain: chain.toEvmChain())
+            let contract = try EthereumContract(
+                address: contractAddr,
+                abiJson: ERC20ABI.evm,
+                provider: provider
+            )
+            
+            async let symbol: String = contract.readSingle(functionName: "symbol")
+            async let decimals: UInt8 = contract.readSingle(functionName: "decimals")
+            async let name: String = contract.readSingle(functionName: "name")
+            let (s, d, n) = try await (symbol, decimals, name)
+            
+            return ERC20Token(
+                chainId: String(provider.chain.chainId),
+                address: contractAddress,
+                symbol: s,
+                decimals: Int(d),
+                name: n
+            )
+        }
+    )
 }
 
 extension DependencyValues {

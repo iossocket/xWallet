@@ -52,7 +52,7 @@ struct AccountDeploy {
     }
 
     @Dependency(\.walletClient) var walletClient
-    @Dependency(\.starknetProvider) var starknetProvider
+    @Dependency(\.starknetRPCService) var starknetRPCService
 
     var body: some ReducerOf<Self> {
         Reduce { state, action in
@@ -60,8 +60,8 @@ struct AccountDeploy {
             case .onAppear:
                 state.phase = .checkBalance
                 state.errorMessage = nil
-                return .run { [address = state.address, starknet = state.starknet, starknetProvider] send in
-                    let balance = try await starknetProvider.getBalance(
+                return .run { [address = state.address, starknet = state.starknet, starknetRPCService] send in
+                    let balance = try await starknetRPCService.getBalance(
                         address,
                         Starknet.Token.STRK.hexString,
                         starknet
@@ -75,9 +75,9 @@ struct AccountDeploy {
                 state.balance = balance
                 if balance > .zero {
                     state.phase = .estimating
-                    return .run { [identityId = state.identityId, walletClient, starknetProvider] send in
+                    return .run { [identityId = state.identityId, walletClient, starknetRPCService] send in
                         let account = try await walletClient.starknetAccount(identityId, "deploy account need to do a local sign")
-                        let fee = try await starknetProvider.estimateDeployFee(account)
+                        let fee = try await starknetRPCService.estimateDeployFee(account)
                         await send(.estimateFeeResponse(.success(fee)))
                     } catch: { error, send in
                         await send(.estimateFeeResponse(.failure(error)))
@@ -105,9 +105,9 @@ struct AccountDeploy {
             case .deployTapped:
                 state.phase = .deploying
                 state.errorMessage = nil
-                return .run { [identityId = state.identityId, walletClient, starknetProvider] send in
+                return .run { [identityId = state.identityId, walletClient, starknetRPCService] send in
                     let account = try await walletClient.starknetAccount(identityId, "deploying starknet account")
-                    let txHash = try await starknetProvider.deployAccount(account)
+                    let txHash = try await starknetRPCService.deployAccount(account)
                     await send(.deployResponse(.success(txHash)))
                 } catch: { error, send in
                     await send(.deployResponse(.failure(error)))
@@ -126,8 +126,8 @@ struct AccountDeploy {
                 guard case .pending(let txHash) = state.phase else {
                     return .none
                 }
-                return .run { [starknet = state.starknet, starknetProvider] send in
-                    let receipt = try await starknetProvider.waitForTransaction(txHash, starknet)
+                return .run { [starknet = state.starknet, starknetRPCService] send in
+                    let receipt = try await starknetRPCService.waitForTransaction(txHash, starknet)
                     await send(.pollStatusResponse(.success(receipt.isSuccess)))
                 } catch: { error, send in
                     await send(.pollStatusResponse(.failure(error)))

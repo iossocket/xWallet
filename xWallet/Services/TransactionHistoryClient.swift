@@ -6,7 +6,7 @@
 //
 
 import BigInt
-import Dependencies
+import ComposableArchitecture
 import Foundation
 
 // MARK: - Models
@@ -41,6 +41,7 @@ struct HistoryPage: Equatable, Sendable {
 
 // MARK: - Client
 
+@DependencyClient
 struct TransactionHistoryClient {
     var fetchHistory: @Sendable (
         _ address: String,
@@ -51,21 +52,7 @@ struct TransactionHistoryClient {
 
 extension TransactionHistoryClient: DependencyKey {
     static var liveValue: TransactionHistoryClient {
-        live()
-    }
-
-    static var testValue: TransactionHistoryClient {
-        TransactionHistoryClient(
-            fetchHistory: { _, _, _ in
-                HistoryPage(transactions: [], nextPageParams: nil)
-            }
-        )
-    }
-}
-
-extension TransactionHistoryClient {
-    static func live(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> TransactionHistoryClient {
-        TransactionHistoryClient(
+        return TransactionHistoryClient(
             fetchHistory: { address, chain, nextPageParams in
                 guard let apiDomain = blockscoutDomain(forChainId: chain.chainId) else {
                     return HistoryPage(transactions: [], nextPageParams: nil)
@@ -84,7 +71,7 @@ extension TransactionHistoryClient {
                     throw HistoryError.invalidURL
                 }
 
-                let (data, response) = try await httpClient.data(from: requestURL)
+                let (data, response) = try await AppHTTPClient.live.data(for: URLRequest(url: requestURL))
                 guard let http = response as? HTTPURLResponse,
                       (200...299).contains(http.statusCode) else {
                     throw HistoryError.httpError

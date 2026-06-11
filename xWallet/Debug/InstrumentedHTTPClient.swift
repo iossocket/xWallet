@@ -9,12 +9,8 @@
 
 import Foundation
 
-struct InstrumentedHTTPClient: HTTPClientProtocol {
-    let base: any HTTPClientProtocol
-
-    func data(from url: URL) async throws -> (Data, URLResponse) {
-        try await data(for: URLRequest(url: url))
-    }
+struct InstrumentedHTTPClient: HTTPServiceProtocol {
+    let base: any HTTPServiceProtocol
 
     func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         let start = CFAbsoluteTimeGetCurrent()
@@ -43,8 +39,8 @@ struct InstrumentedHTTPClient: HTTPClientProtocol {
 }
 
 enum _AppHTTPClientFactory {
-    static func make() -> any HTTPClientProtocol {
-        InstrumentedHTTPClient(base: HTTPClient.shared)
+    static func make() -> any HTTPServiceProtocol {
+        InstrumentedHTTPClient(base: HTTPBaseService.shared)
     }
 }
 

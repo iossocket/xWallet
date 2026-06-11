@@ -9,9 +9,9 @@ import Foundation
 
 struct NewsDataSource: PaginatorDataSource {
     typealias Item = NewsItem
-    let httpClient: any HTTPClientProtocol
+    let httpClient: any HTTPServiceProtocol
 
-    init(httpClient: any HTTPClientProtocol = AppHTTPClient.live) {
+    init(httpClient: any HTTPServiceProtocol = AppHTTPClient.live) {
         self.httpClient = httpClient
     }
 
@@ -29,7 +29,7 @@ struct NewsDataSource: PaginatorDataSource {
         let data: Data
         let response: URLResponse
         do {
-            (data, response) = try await httpClient.data(from: url)
+            (data, response) = try await httpClient.data(for: URLRequest(url: url))
         } catch let urlError as URLError {
             throw PaginatorError.network(urlError.localizedDescription)
         }
@@ -80,7 +80,7 @@ typealias NewsPaginator = CallbackPaginator<
 // MARK: - Factory
 
 enum NewsPaginatorFactory {
-    static func make(httpClient: any HTTPClientProtocol = AppHTTPClient.live) -> NewsPaginator {
+    static func make(httpClient: any HTTPServiceProtocol = AppHTTPClient.live) -> NewsPaginator {
         CallbackPaginator(
             dataSource: NewsDataSource(httpClient: httpClient),
             validator: DefaultPageValidator(),

@@ -9,6 +9,7 @@
 
 import SwiftUI
 import UIKit
+import ComposableArchitecture
 
 final class XWDebugOverlay {
     static let shared = XWDebugOverlay()
@@ -296,8 +297,8 @@ private struct DebugOverlayView: View {
             Text("Clear all storage includes wallet identity & keychain data").font(.system(size: 10, weight: .semibold, design: .monospaced)).foregroundColor(.cyan)
             Button("Delete") {
                 Task {
-                    let ds = WalletDataSource(dbQueue: DatabaseService.dbQueue, securityStore: KeychainService())
-                    try ds.truncate()
+                    @Dependency(\.walletRepository) var walletRepository
+                    try walletRepository.truncate()
                 }
             }
         }

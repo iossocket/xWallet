@@ -7,9 +7,9 @@
 
 import GRDB
 import EthereumKit
-import Foundation
-import Dependencies
+import ComposableArchitecture
 
+@DependencyClient
 struct ChainRegistryClient {
     var listAllChains: @Sendable () async throws -> [Chain]
     var listEnabledChains: @Sendable () async throws -> [Chain]
@@ -20,31 +20,17 @@ struct ChainRegistryClient {
 
 extension ChainRegistryClient: DependencyKey {
     static var liveValue: ChainRegistryClient {
-        let dataSource = ChainDataSource(dbQueue: DatabaseService.dbQueue)
+        @Dependency(\.chainDataSource) var dataSource
         return ChainRegistryClient {
             try await dataSource.listChains()
         } listEnabledChains: {
             try await dataSource.listEnabledChains()
         } createNewChain: { chain, enable in
-            try await dataSource.save(chain, enable: enable)
+            try await dataSource.saveChain(chain, enable)
         } updateChain: { chain, enable in
-            try await dataSource.update(chain, enable: enable)
+            try await dataSource.update(chain, enable)
         } batchInsertChains: { chains in
-            try await dataSource.save(chains)
-        }
-    }
-
-    static var testValue: ChainRegistryClient {
-        ChainRegistryClient {
-            []
-        } listEnabledChains: {
-            []
-        } createNewChain: { chain, _ in
-            chain
-        } updateChain: { chain, _ in
-            chain
-        } batchInsertChains: { chains in
-            chains
+            try await dataSource.saveChains(chains)
         }
     }
 }

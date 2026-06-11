@@ -68,7 +68,7 @@ struct Wallet {
     @Dependency(\.balanceClient) var balanceClient
     @Dependency(\.chainRegistry) var chainRegistry
     @Dependency(\.priceClient) var priceClient
-    @Dependency(\.starknetProvider) var starknetProvider
+    @Dependency(\.starknetRPCService) var starknetRPCService
 
     // load supported chains -> batch fetch balance -> batch fetch prices -> calculate total value -> list all tokens
 
@@ -127,7 +127,7 @@ struct Wallet {
                 return .none
 
             case .onAppear:
-                return .run { [activeIdentitySet = state.activeIdentitySet, starknetProvider] send in
+                return .run { [activeIdentitySet = state.activeIdentitySet, starknetRPCService] send in
                     await send(.loadSupportedChainsResponse(
                         Result { try await chainRegistry.listEnabledChains() }
                     ))
@@ -135,7 +135,7 @@ struct Wallet {
                        let address = starknetIdentity.primaryAddress {
                         let starknet: Starknet = starknetIdentity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
                         await send(.checkDeployStatusResponse(Result {
-                            try await starknetProvider.isAccountDeployed(address, starknet)
+                            try await starknetRPCService.isAccountDeployed(address, starknet)
                         }))
                     }
                 }
@@ -157,9 +157,9 @@ struct Wallet {
                     let starknet: Starknet = starknetIdentity.chainId == StarknetChainId.mainnet.rawValue ? .mainnet : .sepolia
                     return .merge(
                         .send(.fetchAllBalances),
-                        .run { [starknetProvider] send in
+                        .run { [starknetRPCService] send in
                             await send(.checkDeployStatusResponse(Result {
-                                try await starknetProvider.isAccountDeployed(address, starknet)
+                                try await starknetRPCService.isAccountDeployed(address, starknet)
                             }))
                         }
                     )

@@ -136,7 +136,7 @@ struct ChainDetail {
         case saveResponse(Result<Chain?, Error>)
     }
 
-    @Dependency(\.evmProvider) var evmProvider
+    @Dependency(\.evmProviderFactory) var evmProviderFactory
     @Dependency(\.chainRegistry) var chainRegistry
     @Dependency(\.dismiss) var dismiss
 
@@ -159,7 +159,7 @@ struct ChainDetail {
                 let chain = state.chain
                 return .run { send in
                     do {
-                        let provider = evmProvider.provider(chain)
+                        let provider = evmProviderFactory.provider(chain)
                         let hex: String = try await provider.send(
                             request: provider.chainIdRequest()
                         )

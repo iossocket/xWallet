@@ -217,7 +217,7 @@ class NewsFeedViewController: UIViewController {
     private func errorMessage(for error: PaginatorError) -> String {
         switch error {
         case .network:
-            return "You appear to be offline. Check your connection and try again."
+            return "Check your connection and try again."
         case .server(let statusCode):
             return "Server error (\(statusCode)). Please try again later."
         case .validationFailed:
