@@ -1,5 +1,5 @@
 //
-//  StarknetProviderClient.swift
+//  StarknetRPCService.swift
 //  xWallet
 //
 //  Created by Xueliang Zhu on 10/3/26.
@@ -12,7 +12,7 @@ import MultiChainCore
 import BigInt
 
 
-struct StarknetProviderClient {
+struct StarknetRPCService {
     var getBalance: @Sendable (_ address: String, _ tokenContract: String, _ chain: Starknet) async throws -> BigUInt
     var isAccountDeployed: @Sendable (_ address: String, _ chain: Starknet) async throws -> Bool
     var waitForTransaction: @Sendable (_ hash: String, _ chain: Starknet) async throws -> StarknetReceipt
@@ -20,9 +20,9 @@ struct StarknetProviderClient {
     var deployAccount: @Sendable (_ account: StarknetAccount) async throws -> String
 }
 
-extension StarknetProviderClient: DependencyKey {
-    static var liveValue: StarknetProviderClient {
-        return StarknetProviderClient { address, tokenContract, chain in
+extension StarknetRPCService: DependencyKey {
+    static var liveValue: StarknetRPCService {
+        return StarknetRPCService { address, tokenContract, chain in
             let provider = StarknetProvider(chain: chain)
             guard let tokenAddress = Felt(tokenContract), let accountAddress = Felt(address) else {
                 return .zero
@@ -86,27 +86,27 @@ extension StarknetProviderClient: DependencyKey {
         }
     }
     
-    static var testValue: StarknetProviderClient {
-        StarknetProviderClient(
+    static var testValue: StarknetRPCService {
+        StarknetRPCService(
             getBalance: { _, _, _ in BigUInt.zero },
             isAccountDeployed: { _, _ in false },
             waitForTransaction: { _, _ in
-                fatalError("StarknetProviderClient.waitForTransaction: override in withDependencies")
+                fatalError("StarknetRPCService.waitForTransaction: override in withDependencies")
             },
             estimateDeployFee: { _ in
-                fatalError("StarknetProviderClient.estimateDeployFee: override in withDependencies")
+                fatalError("StarknetRPCService.estimateDeployFee: override in withDependencies")
             },
             deployAccount: { _ in
-                fatalError("StarknetProviderClient.deployAccount: override in withDependencies")
+                fatalError("StarknetRPCService.deployAccount: override in withDependencies")
             }
         )
     }
 }
 
 extension DependencyValues {
-    var starknetProvider: StarknetProviderClient {
-        get { self[StarknetProviderClient.self] }
-        set { self[StarknetProviderClient.self] = newValue }
+    var starknetRPCService: StarknetRPCService {
+        get { self[StarknetRPCService.self] }
+        set { self[StarknetRPCService.self] = newValue }
     }
 }
 

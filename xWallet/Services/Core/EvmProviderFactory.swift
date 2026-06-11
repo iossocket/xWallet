@@ -1,12 +1,12 @@
 //
-//  EvmProviderClient.swift
+//  EvmProviderFactory.swift
 //  xWallet
 //
 //  Created by Xueliang Zhu on 24/2/26.
 //
 
 import Foundation
-import Dependencies
+import ComposableArchitecture
 import EthereumKit
 import MultiChainCore
 
@@ -52,28 +52,28 @@ struct EvmProviderWrapper: EvmProviderProtocol {
     }
 }
 
-struct EvmProviderClient {
+struct EvmProviderFactory {
     var provider: @Sendable (Chain) -> any EvmProviderProtocol
 }
 
-extension EvmProviderClient: DependencyKey {
-    static var liveValue: EvmProviderClient {
-        EvmProviderClient { chain in
+extension EvmProviderFactory: DependencyKey {
+    static var liveValue: EvmProviderFactory {
+        EvmProviderFactory { chain in
             EvmProviderWrapper(chain: chain)
         }
     }
 
-    static var testValue: EvmProviderClient {
-        EvmProviderClient { chain in
+    static var testValue: EvmProviderFactory {
+        EvmProviderFactory { chain in
             MockEvmProvider(chainId: UInt64(chain.chainId)!)
         }
     }
 }
 
 extension DependencyValues {
-    var evmProvider: EvmProviderClient {
-        get { self[EvmProviderClient.self] }
-        set { self[EvmProviderClient.self] = newValue }
+    var evmProviderFactory: EvmProviderFactory {
+        get { self[EvmProviderFactory.self] }
+        set { self[EvmProviderFactory.self] = newValue }
     }
 }
 
