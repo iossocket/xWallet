@@ -9,7 +9,7 @@ import Foundation
 
 struct DefiLlamaPriceProvider: PriceProvider {
     let resolver: PriceIdResolverService
-    let httpClient: any HTTPClientProtocol
+    let httpClient: any HTTPServiceProtocol
 
     func fetchPrices(chainId: String, symbols: [String]) async throws -> [String: Double] {
         let mapped = await resolver.resolve(chainId: chainId, symbols: symbols)
@@ -21,7 +21,7 @@ struct DefiLlamaPriceProvider: PriceProvider {
             throw PriceError.invalidURL
         }
 
-        let (data, response) = try await httpClient.data(from: url)
+        let (data, response) = try await httpClient.data(for: URLRequest(url: url))
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             throw PriceError.httpError
