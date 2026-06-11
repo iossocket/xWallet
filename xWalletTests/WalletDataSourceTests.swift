@@ -7,6 +7,7 @@
 
 import Foundation
 import GRDB
+import ComposableArchitecture
 import Testing
 
 @testable import xWallet
@@ -14,76 +15,92 @@ import Testing
 struct WalletDataSourceTests {
     @Test
     func loadSecretPrefersMnemonicWhenMnemonicAndPrivateKeyBothExist() throws {
-        let securityStore = InMemorySecurityStore()
-        let dataSource = WalletSecretDataSource(securityStore: securityStore)
-        let walletId = UUID()
-        let mnemonic = "test test test test test test test test test test test junk"
-        let privateKey = Data([0x01, 0x02, 0x03, 0x04])
+        let box = InMemoryKeychain()
+        try withDependencies {
+            $0.keychainStore = .inMemory(box)
+        } operation: {
+            let repo = WalletSecretRepository.liveValue
+            let walletId = UUID()
+            let mnemonic = "test test test test test test test test test test test junk"
+            let privateKey = Data([0x01, 0x02, 0x03, 0x04])
 
-        try dataSource.saveSecret(.mnemonic(mnemonic), for: walletId)
-        try dataSource.saveSecret(.privateKey(privateKey, .evm), for: walletId)
+            try repo.saveSecret(source: .mnemonic(mnemonic), id: walletId)
+            try repo.saveSecret(source: .privateKey(privateKey, .evm), id: walletId)
 
-        let secret = try dataSource.loadSecret(for: walletId)
+            let secret = try repo.loadSecret(id: walletId, reason: "")
 
-        #expect(secret == .mnemonic(mnemonic))
+            #expect(secret == .mnemonic(mnemonic))
+        }
     }
 
     @Test
     func loadSecretReturnsPrivateKeyWithOriginalAccountType() throws {
-        let securityStore = InMemorySecurityStore()
-        let dataSource = WalletSecretDataSource(securityStore: securityStore)
-        let walletId = UUID()
-        let privateKey = Data([0xAB, 0xCD, 0xEF])
+        let box = InMemoryKeychain()
+        try withDependencies {
+            $0.keychainStore = .inMemory(box)
+        } operation: {
+            let repo = WalletSecretRepository.liveValue
+            let walletId = UUID()
+            let privateKey = Data([0xAB, 0xCD, 0xEF])
 
-        try dataSource.saveSecret(.privateKey(privateKey, .starknet(.argent)), for: walletId)
+            try repo.saveSecret(source: .privateKey(privateKey, .starknet(.argent)), id: walletId)
 
-        let secret = try dataSource.loadSecret(for: walletId)
+            let secret = try repo.loadSecret(id: walletId, reason: "")
 
-        #expect(secret == .privateKey(privateKey, .starknet(.argent)))
+            #expect(secret == .privateKey(privateKey, .starknet(.argent)))
+        }
     }
 
     @Test
     func loadSecretSupportsLegacyMnemonicPayloadStoredUnderWalletKey() throws {
-        let securityStore = InMemorySecurityStore()
-        let dataSource = WalletSecretDataSource(securityStore: securityStore)
+        let box = InMemoryKeychain()
         let walletId = UUID()
         let mnemonic = "legacy test test test test test test test test test test test"
 
-        securityStore.storage[Self.privateKeyAccount(for: walletId)] = try JSONEncoder().encode([
+        box.storage[Self.privateKeyAccount(for: walletId)] = try JSONEncoder().encode([
             "type": "mnemonic",
             "value": mnemonic
         ])
 
-        let secret = try dataSource.loadSecret(for: walletId)
+        try withDependencies {
+            $0.keychainStore = .inMemory(box)
+        } operation: {
+            let repo = WalletSecretRepository.liveValue
+            let secret = try repo.loadSecret(id: walletId, reason: "")
 
-        #expect(secret == .mnemonic(mnemonic))
+            #expect(secret == .mnemonic(mnemonic))
+        }
     }
 
     @Test
-    func deleteAllDeletesBothSecretKeysAndIgnoresMissingItems() throws {
-        let securityStore = InMemorySecurityStore()
-        let dataSource = WalletSecretDataSource(securityStore: securityStore)
-        let walletId = UUID()
+    func deleteSecretDeletesBothSecretKeysAndIgnoresMissingItems() throws {
+        let box = InMemoryKeychain()
+        try withDependencies {
+            $0.keychainStore = .inMemory(box)
+        } operation: {
+            let repo = WalletSecretRepository.liveValue
+            let walletId = UUID()
 
-        try dataSource.saveSecret(.mnemonic("test test test test test test test test test test test junk"), for: walletId)
-        try dataSource.saveSecret(.privateKey(Data([0x10, 0x20]), .evm), for: walletId)
+            try repo.saveSecret(source: .mnemonic("test test test test test test test test test test test junk"), id: walletId)
+            try repo.saveSecret(source: .privateKey(Data([0x10, 0x20]), .evm), id: walletId)
 
-        try dataSource.deleteAll(for: walletId)
+            try repo.deleteSecret(id: walletId)
 
-        #expect(securityStore.storage.isEmpty)
-        #expect(Set(securityStore.deletedAccounts) == Set([
-            Self.privateKeyAccount(for: walletId),
-            Self.mnemonicAccount(for: walletId),
-        ]))
+            #expect(box.storage.isEmpty)
+            #expect(Set(box.deletedAccounts) == Set([
+                Self.privateKeyAccount(for: walletId),
+                Self.mnemonicAccount(for: walletId),
+            ]))
 
-        try dataSource.deleteAll(for: walletId)
+            try repo.deleteSecret(id: walletId)
 
-        #expect(securityStore.deletedAccounts.count == 4)
+            #expect(box.deletedAccounts.count == 4)
+        }
     }
 
     @Test
     func setActiveWalletDeactivatesOnlyWalletsOnSameChainType() throws {
-        let dataSource = try Self.makeWalletDataSource()
+        let repo = try Self.makeWalletRepository()
         let evmWallet1 = Self.makeIdentity(
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000011")!,
             name: "EVM Wallet 1",
@@ -101,13 +118,13 @@ struct WalletDataSourceTests {
             chainId: StarknetChainId.sepolia.rawValue
         )
 
-        try dataSource.saveIdentity(evmWallet1)
-        try dataSource.saveIdentity(evmWallet2)
-        try dataSource.saveIdentity(starknetWallet)
+        try repo.saveIdentity(evmWallet1)
+        try repo.saveIdentity(evmWallet2)
+        try repo.saveIdentity(starknetWallet)
 
-        let firstActiveWallet = try dataSource.setActiveWallet(evmWallet1.id)
-        let activeStarknetWallet = try dataSource.setActiveWallet(starknetWallet.id)
-        let finalActiveWallet = try dataSource.setActiveWallet(evmWallet2.id)
+        let firstActiveWallet = try repo.setActiveWallet(evmWallet1.id)
+        let activeStarknetWallet = try repo.setActiveWallet(starknetWallet.id)
+        let finalActiveWallet = try repo.setActiveWallet(evmWallet2.id)
 
         _ = try #require(firstActiveWallet)
         _ = try #require(activeStarknetWallet)
@@ -115,14 +132,14 @@ struct WalletDataSourceTests {
 
         #expect(activatedWallet.id == evmWallet2.id)
 
-        let activeSet = try dataSource.activeIdentitySet()
+        let activeSet = try repo.activeIdentitySet()
         #expect(activeSet.evm?.id == evmWallet2.id)
         #expect(activeSet.starknet?.id == starknetWallet.id)
     }
 }
 
 private extension WalletDataSourceTests {
-    static func makeWalletDataSource() throws -> WalletDataSource {
+    static func makeWalletRepository() throws -> WalletRepository {
         let dbQueue = try DatabaseQueue(path: ":memory:")
         try dbQueue.write { db in
             try db.create(table: "wallet_identity") { table in
@@ -146,7 +163,11 @@ private extension WalletDataSourceTests {
             }
         }
 
-        return WalletDataSource(dbQueue: dbQueue, securityStore: InMemorySecurityStore())
+        return withDependencies {
+            $0.databaseStore.dbQueue = { dbQueue }
+        } operation: {
+            WalletRepository.liveValue
+        }
     }
 
     static func makeIdentity(
@@ -187,30 +208,33 @@ private extension WalletDataSourceTests {
     }
 }
 
-private final class InMemorySecurityStore: SecurityStore {
+private final class InMemoryKeychain {
     var storage: [String: Data] = [:]
     var deletedAccounts: [String] = []
+}
 
-    func saveData(_ data: Data, account: String) throws {
-        storage[account] = data
-    }
-
-    func loadData(account: String) throws -> Data {
-        guard let data = storage[account] else {
-            throw KeychainError.itemNotFound
-        }
-        return data
-    }
-
-    func delete(account: String) throws {
-        deletedAccounts.append(account)
-        guard storage.removeValue(forKey: account) != nil else {
-            throw KeychainError.itemNotFound
-        }
-    }
-
-    func deleteAll() throws {
-        deletedAccounts.append(contentsOf: storage.keys)
-        storage.removeAll()
+private extension KeychainStore {
+    static func inMemory(_ box: InMemoryKeychain) -> KeychainStore {
+        KeychainStore(
+            saveData: { data, account, _ in
+                box.storage[account] = data
+            },
+            loadData: { account, _, _ in
+                guard let data = box.storage[account] else {
+                    throw KeychainError.itemNotFound
+                }
+                return data
+            },
+            delete: { account in
+                box.deletedAccounts.append(account)
+                guard box.storage.removeValue(forKey: account) != nil else {
+                    throw KeychainError.itemNotFound
+                }
+            },
+            deleteAll: {
+                box.deletedAccounts.append(contentsOf: box.storage.keys)
+                box.storage.removeAll()
+            }
+        )
     }
 }

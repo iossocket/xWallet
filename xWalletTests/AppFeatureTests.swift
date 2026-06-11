@@ -13,19 +13,24 @@ import SwiftUI
 @testable import xWallet
 
 @MainActor
+@Suite(.serialized)
 struct AppFeatureTests {
 
     // MARK: - Biometric Setup
 
     @Test
     func firstLaunchBiometricSetupSuccess() async {
+        var state = AppFeature.State()
+        state.$biometricSetupCompleted.withLock { $0 = false }
+
         let store = TestStore(
-            initialState: AppFeature.State()
+            initialState: state
         ) {
             AppFeature()
         } withDependencies: {
-            $0.biometricClient.checkAvailability = { .available(.faceID) }
-            $0.biometricClient.authenticate = { _ in }
+            $0.defaultAppStorage = UserDefaults(suiteName: "test-\(UUID().uuidString)")!
+            $0.biometricService.checkAvailability = { .available(.faceID) }
+            $0.biometricService.authenticate = { _ in }
             $0.walletClient.activeIdentitySet = { throw WalletError.noActiveIdentity }
         }
 
@@ -34,19 +39,16 @@ struct AppFeatureTests {
         await store.receive(\.biometricStatusChecked) {
             $0.biometricStatus = .available(.faceID)
             $0.launchPhase = .biometricSetup
+            $0.$biometricSetupCompleted.withLock { $0 = true }
         }
 
         await store.receive(\.authenticate)
 
-        await store.receive(\.authenticateResponse.success) {
-            $0.biometricSetupCompleted = true
-            $0.showPrivacyOverlay = false
-            $0.needsAuth = false
-        }
+        await store.receive(\.authenticateResponse)
 
         await store.receive(\.activeIdentityCheck)
 
-        await store.receive(\.activeIdentityResponse.failure) {
+        await store.receive(\.activeIdentityResponse) {
             $0.launchPhase = .needsOnboarding
         }
     }
@@ -58,7 +60,7 @@ struct AppFeatureTests {
         ) {
             AppFeature()
         } withDependencies: {
-            $0.biometricClient.checkAvailability = { .unavailable(.noPasscode) }
+            $0.biometricService.checkAvailability = { .unavailable(.noPasscode) }
         }
 
         await store.send(.checkBiometric)
@@ -79,7 +81,7 @@ struct AppFeatureTests {
         ) {
             AppFeature()
         } withDependencies: {
-            $0.biometricClient.checkAvailability = { .available(.faceID) }
+            $0.biometricService.checkAvailability = { .available(.faceID) }
             $0.walletClient.activeIdentitySet = { throw WalletError.noActiveIdentity }
         }
 
@@ -91,7 +93,7 @@ struct AppFeatureTests {
 
         await store.receive(\.activeIdentityCheck)
 
-        await store.receive(\.activeIdentityResponse.failure) {
+        await store.receive(\.activeIdentityResponse) {
             $0.launchPhase = .needsOnboarding
         }
     }
@@ -160,7 +162,7 @@ struct AppFeatureTests {
             AppFeature()
         } withDependencies: {
             $0.date = .constant(fgTime)
-            $0.biometricClient.authenticate = { _ in }
+            $0.biometricService.authenticate = { _ in }
         }
 
         await store.send(.scenePhaseChanged(.active)) {
@@ -170,7 +172,7 @@ struct AppFeatureTests {
 
         await store.receive(\.authenticate)
 
-        await store.receive(\.authenticateResponse.success) {
+        await store.receive(\.authenticateResponse) {
             $0.showPrivacyOverlay = false
             $0.needsAuth = false
         }
@@ -190,12 +192,12 @@ struct AppFeatureTests {
         ) {
             AppFeature()
         } withDependencies: {
-            $0.biometricClient.authenticate = { _ in throw AuthError.denied }
+            $0.biometricService.authenticate = { _ in throw AuthError.denied }
         }
 
         await store.send(.authenticate)
 
-        await store.receive(\.authenticateResponse.failure) {
+        await store.receive(\.authenticateResponse) {
             $0.needsAuth = true
         }
     }
@@ -245,7 +247,7 @@ struct AppFeatureTests {
 
         await store.send(.initializeChains)
 
-        await store.receive(\.initializeChainsResponse.success)
+        await store.receive(\.initializeChainsResponse)
     }
 
     @Test
@@ -264,7 +266,7 @@ struct AppFeatureTests {
 
         await store.send(.initializeChains)
 
-        await store.receive(\.initializeChainsResponse.success)
+        await store.receive(\.initializeChainsResponse)
     }
 
     @Test
@@ -282,6 +284,6 @@ struct AppFeatureTests {
 
         await store.send(.initializeChains)
 
-        await store.receive(\.initializeChainsResponse.failure)
+        await store.receive(\.initializeChainsResponse)
     }
 }

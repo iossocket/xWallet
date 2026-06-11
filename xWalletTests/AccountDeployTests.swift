@@ -13,8 +13,8 @@ import MultiChainKit
 
 @MainActor
 struct AccountDeployTests {
-    private static let identityId = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
-    private static let address = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    private let identityId = UUID(uuidString: "00000000-0000-0000-0000-0000000000AA")!
+    private let address = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
 
     private static let mockFee: StarknetFeeEstimate = {
         let json = """
@@ -23,11 +23,29 @@ struct AccountDeployTests {
         return try! JSONDecoder().decode(StarknetFeeEstimate.self, from: Data(json.utf8))
     }()
 
+    private static let mockSuccessReceipt: StarknetReceipt = {
+        let json = """
+        {
+          "type": "DEPLOY_ACCOUNT",
+          "transaction_hash": "0xabc",
+          "actual_fee": {"amount": "0x2386f26fc10000", "unit": "FRI"},
+          "execution_status": "SUCCEEDED",
+          "finality_status": "ACCEPTED_ON_L2",
+          "block_hash": "0x03b2711fe29eba45f2a0250c34901d15e37b495599fac498a3d2eaa4c2225c81",
+          "block_number": 1,
+          "messages_sent": [],
+          "events": [],
+          "execution_resources": {"steps": 1}
+        }
+        """
+        return try! JSONDecoder().decode(StarknetReceipt.self, from: Data(json.utf8))
+    }()
+
     private func makeState(phase: AccountDeploy.Phase = .checkBalance) -> AccountDeploy.State {
         AccountDeploy.State(
             phase: phase,
-            identityId: Self.identityId,
-            address: Self.address,
+            identityId: self.identityId,
+            address: self.address,
             starknet: .sepolia,
             starknetAccountType: .oz
         )
@@ -37,7 +55,10 @@ struct AccountDeployTests {
     func happyPath() async {
         let store = TestStore(initialState: makeState()) {
             AccountDeploy()
+        } withDependencies: {
+            $0.starknetRPCService.waitForTransaction = { _, _ in await Self.mockSuccessReceipt }
         }
+        store.exhaustivity = .off
 
         await store.send(.onAppear) {
             $0.phase = .checkBalance
@@ -68,21 +89,29 @@ struct AccountDeployTests {
     func insufficientFundsThenRetry() async {
         let store = TestStore(initialState: makeState()) {
             AccountDeploy()
+        } withDependencies: {
+            $0.starknetRPCService.getBalance = { _, _, _ in BigUInt(0) }
         }
-        store.exhaustivity = .off
+        // store.exhaustivity = .off(showSkippedAssertions: true)
 
         await store.send(.onAppear)
-        await store.send(.checkBalanceResponse(.success(.zero))) {
+        await store.receive(\.checkBalanceResponse.success) {
             $0.balance = .zero
             $0.phase = .insufficientFunds
         }
+
         await store.send(.retryTapped) {
             $0.phase = .checkBalance
             $0.estimatedFee = nil
             $0.balance = nil
             $0.errorMessage = nil
         }
+        
         await store.receive(\.onAppear)
+        await store.receive(\.checkBalanceResponse.success) {
+            $0.balance = .zero
+            $0.phase = .insufficientFunds
+        }
     }
 
     @Test

@@ -78,8 +78,7 @@ struct DiscoverTests {
 
         #expect(repo.items == [Self.testItem1, Self.testItem2])
         #expect(repo.hasMore == true)
-        #expect(repo.isLoading == false)
-        #expect(repo.error == nil)
+        #expect(repo.state == .content)
     }
 
     @Test
@@ -116,8 +115,7 @@ struct DiscoverTests {
         // Refresh returns same data (stub is deterministic)
         await repo.refresh()
         #expect(repo.items == [Self.testItem1])
-        #expect(repo.isRefreshing == false)
-        #expect(repo.error == nil)
+        #expect(repo.state == .content)
     }
 
     @Test
@@ -125,16 +123,16 @@ struct DiscoverTests {
         let repo = Self.makeRepository(shouldThrow: .network("HTTP 500"))
 
         await repo.loadFirstPage()
-        #expect(repo.error != nil)
+        #expect(repo.state == .error(PaginatorError.network("HTTP 500")))
 
         // Now make a repo that succeeds on refresh — since stub is fixed,
         // we test that refresh resets the error flag before fetching
-        let page = PaginatorPage<NewsItem>(content: [], key: nil, nextKey: nil)
+        let page = PaginatorPage<NewsItem>(content: [Self.testItem1], key: nil, nextKey: nil)
         let repo2 = Self.makeRepository(pages: [nil: page])
         // Simulate prior error state
         await repo2.loadFirstPage()
         await repo2.refresh()
-        #expect(repo2.error == nil)
+        #expect(repo2.state == .content)
     }
 
     // MARK: - loadMore
@@ -188,8 +186,7 @@ struct DiscoverTests {
         await repo.loadFirstPage()
 
         #expect(repo.items.isEmpty)
-        #expect(repo.error != nil)
-        #expect(repo.isLoading == false)
+        #expect(repo.state == .error(PaginatorError.network("HTTP 500")))
     }
 
     // MARK: - Empty page

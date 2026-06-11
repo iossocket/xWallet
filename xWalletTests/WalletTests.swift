@@ -448,7 +448,7 @@ struct WalletTests {
         } withDependencies: {
             $0.chainRegistry.listEnabledChains = { [] }
             $0.balanceClient.fetchBalances = { _, _ in [] }
-            $0.starknetProvider.isAccountDeployed = { _, _ in false }
+            $0.starknetRPCService.isAccountDeployed = { _, _ in false }
         }
         store.exhaustivity = .off
 

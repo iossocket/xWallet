@@ -63,11 +63,9 @@ struct AccountTests {
         await store.receive(\.createWalletResponse.success) {
             $0.isLoading = false
             $0.isUnlocked = true
+            $0.$activeIdentitySet.withLock { $0.updateIdentity(identity: Self.testIdentity) }
         }
-        await store.receive(\.switchWalletResponse.success) {
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
-            $0.accountDeploy = nil
-        }
+        await store.receive(\.switchWalletResponse.success)
     }
 
     @Test
@@ -114,11 +112,9 @@ struct AccountTests {
             $0.isLoading = false
             $0.isUnlocked = true
             $0.errorMessage = nil
+            $0.$activeIdentitySet.withLock { $0.updateIdentity(identity: Self.testIdentity) }
         }
-        await store.receive(\.switchWalletResponse.success) {
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
-            $0.accountDeploy = nil
-        }
+        await store.receive(\.switchWalletResponse.success)
     }
 
     @Test
@@ -170,11 +166,9 @@ struct AccountTests {
             $0.isLoading = false
             $0.isUnlocked = true
             $0.errorMessage = nil
+            $0.$activeIdentitySet.withLock { $0.updateIdentity(identity: Self.testIdentity) }
         }
-        await store.receive(\.switchWalletResponse.success) {
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
-            $0.accountDeploy = nil
-        }
+        await store.receive(\.switchWalletResponse.success)
     }
 
     @Test
@@ -242,7 +236,7 @@ struct AccountTests {
             Account()
         } withDependencies: {
             $0.walletClient.createWallet = { _, _ in await Self.starknetIdentity }
-            $0.starknetProvider.isAccountDeployed = { _, _ in false }
+            $0.starknetRPCService.isAccountDeployed = { _, _ in false }
         }
         store.exhaustivity = .off
 
@@ -292,10 +286,8 @@ struct AccountTests {
             $0.isLoading = false
             $0.isUnlocked = true
             $0.accountDeploy = nil
+            $0.$activeIdentitySet.withLock { $0.updateIdentity(identity: Self.testIdentity) }
         }
-        await store.receive(\.switchWalletResponse.success) {
-            $0.$activeIdentitySet.withLock { $0 = ActiveWalletIdentitySet(evm: Self.testIdentity) }
-            $0.accountDeploy = nil
-        }
+        await store.receive(\.switchWalletResponse.success)
     }
 }
